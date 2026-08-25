@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CET Mock Test – Take Test</title>
+  <link rel="stylesheet" href="test.css">
+</head>
+<body>
+<div id="testApp"></div>
+
+<script>
+  // ---------- ALL ORIGINAL JAVASCRIPT (except theme toggle) ----------
+  const CURRENT_STORAGE_KEY = 'cet_mock_tests_v3';
+  const OLD_STORAGE_KEY = 'cet_mock_tests_v2';
+  const ATTEMPTS_KEY = 'cet_test_attempts';
+
+  function getAllTests() {
+    let raw = localStorage.getItem(CURRENT_STORAGE_KEY);
+    if (raw) { try { return JSON.parse(raw); } catch(e) { return []; } }
+    const oldRaw = localStorage.getItem(OLD_STORAGE_KEY);
+    if (oldRaw) {
+      try { const old = JSON.parse(oldRaw); if (Array.isArray(old) && old.length) { localStorage.setItem(CURRENT_STORAGE_KEY, JSON.stringify(old)); return old; } } catch(e) {}
+    }
+    return [];
+  }
+  function getTestById(id) { return getAllTests().find(t => t.id === id); }
+  function saveAttempt(attempt) { const attempts = getAllAttempts(); attempts.push(attempt); localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(attempts)); }
+  function getAllAttempts() { const raw = localStorage.getItem(ATTEMPTS_KEY); return raw ? JSON.parse(raw) : []; }
+
+  function showToast(message, type = 'success', title = '') {
+    const container = document.getElementById('toastContainer') || (() => { const div = document.createElement('div'); div.id = 'toastContainer'; div.className = 'toast-container'; document.body.appendChild(div); return div; })();
+    const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+    const titles = { success: 'Success!', error: 'Error!', info: 'Info', warning: 'Warning!' };
+    const toast = document.createElement('div'); toast.className = `toast ${type}`;
+    toast.innerHTML = `<div class="toast-icon">${icons[type]}</div><div class="toast-content"><div class="toast-title">${title || titles[type]}</div><div class="toast-message">${message}</div></div>`;
+    container.appendChild(toast); setTimeout(() => toast.remove(), 4000);
+  }
+
+  function showExplanationToast(explanation, questionText) {
+    const container = document.getElementById('explanationToastContainer') || (() => { const div = document.createElement('div'); div.id = 'explanationToastContainer'; div.className = 'explanation-toast-container'; document.body.appendChild(div); return div; })();
+    const toast = document.createElement('div'); toast.className = 'explanation-toast';
+    toast.innerHTML = `<div class="explanation-title">📖 Explanation</div><div style="font-size:0.85rem; color:var(--color-text-secondary);">${escapeHtml(questionText.substring(0, 80))}${questionText.length > 80 ? '...' : ''}</div><div class="explanation-text">${escapeHtml(explanation)}</div>`;
+    container.appendChild(toast); setTimeout(() => toast.remove(), 5000);
+  }
+
+  function showConfirmationModal(onConfirm, unansweredCount) {
+    const modal = document.createElement('div'); modal.className = 'modal-overlay';
+    let warningText = unansweredCount > 0 ? `<p style="color: var(--color-warning); margin-bottom: 1rem;">⚠️ You have ${unansweredCount} unanswered question(s)!</p>` : '';
+    modal.innerHTML = `<div class="modal-box"><h3>📝 Submit Test?</h3>${warningText}<p>Are you sure you want to submit your test? You won't be able to change your answers after submission.</p><div class="modal-actions"><button class="btn btn-secondary" id="cancelSubmit">Cancel</button><button class="btn btn-danger" id="confirmSubmit">Yes, Submit</button></div></div>`;
+    document.body.appendChild(modal);
+    document.getElementById('cancelSubmit').addEventListener('click', () => { modal.remove(); showToast('Submission cancelled.', 'info'); });
+    document.getElementById('confirmSubmit').addEventListener('click', () => { modal.remove(); onConfirm(); });
+  }
+
+  // ========== GRAPH RENDERING (unchanged) ==========
+  function setCanvasSize(canvas, width, height) {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    return ctx;
+  }
+
+  function renderBarGraph(canvasId, title, data) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const labels = Object.keys(data);
+    const values = Object.values(data);
+    const width = 500, height = 300;
+    const ctx = setCanvasSize(canvas, width, height);
+    ctx.clearRect(0, 0, width, height);
+    const barWidth = (width / labels.length) * 0.6;
+    const startX = (width / labels.length - barWidth) / 2;
+    const maxVal = Math.max(...values, 1);
+    for (let i = 0; i < labels.length; i++) {
+      const x = i * (width / labels.length) + startX;
+      const barHeight = (values[i] / maxVal) * (height - 60);
+      ctx.fillStyle = '#3b82f6';
+      ctx.fillRect(x, height - barHeight - 30, barWidth, barHeight);
+      ctx.fillStyle = '#333';
+      ctx.font = '12px sans-serif';
+      ctx.fillText(labels[i], x + barWidth/4, height - 10);
+    }
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText(title, 10, 20);
+  }
+
+  function renderLineGraph(canvasId, title, data) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const labels = Object.keys(data);
+    const values = Object.values(data);
+    const width = 500, height = 300;
+    const ctx = setCanvasSize(canvas, width, height);
+    ctx.clearRect(0, 0, width, height);
+    const maxVal = Math.max(...values, 1);
+    const stepX = width / (labels.length - 1 || 1);
+    const points = [];
+    for (let i = 0; i < labels.length; i++) {
+      const x = i * stepX;
+      const y = height - 30 - (values[i] / maxVal) * (height - 60);
+      points.push({ x, y });
+    }
+    ctx.beginPath();
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth = 2;
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+    ctx.stroke();
+    for (let i = 0; i < points.length; i++) {
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(points[i].x, points[i].y, 4, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.fillStyle = '#333';
+      ctx.font = '10px sans-serif';
+      ctx.fillText(labels[i], points[i].x - 5, height - 10);
+    }
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText(title, 10, 20);
+  }
+
+  function renderPieChart(canvasId, title, data) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const values = Object.values(data);
+    const labels = Object.keys(data);
+    const total = values.reduce((a, b) => a + b, 0);
+    const width = 500, height = 300;
+    const ctx = setCanvasSize(canvas, width, height);
+    ctx.clearRect(0, 0, width, height);
+    const centerX = width / 2, centerY = height / 2, radius = 100;
+    let startAngle = -Math.PI / 2;
+    const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+    for (let i = 0; i < values.length; i++) {
+      const angle = (values[i] / total) * 2 * Math.PI;
+      const endAngle = startAngle + angle;
+      ctx.beginPath();
+      ctx.fillStyle = colors[i % colors.length];
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+      ctx.fill();
+      startAngle = endAngle;
+    }
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText(title, 10, 20);
+    let legendY = 40;
+    for (let i = 0; i < labels.length; i++) {
+      ctx.fillStyle = colors[i % colors.length];
+      ctx.fillRect(width - 120, legendY, 12, 12);
+      ctx.fillStyle = '#000';
+      ctx.font = '10px sans-serif';
+      ctx.fillText(`${labels[i]}: ${values[i]}`, width - 105, legendY + 10);
+      legendY += 18;
+    }
+  }
+
+  function renderTable(containerId, title, data) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    let html = `<table class="data-table"><caption style="caption-side:top; margin-bottom:8px; font-weight:bold;">${escapeHtml(title)}</caption><thead><tr><th>Item</th><th>Value</th></tr></thead><tbody>`;
+    for (let [key, val] of Object.entries(data)) {
+      html += `<tr><td>${escapeHtml(key)}</td><td>${escapeHtml(String(val))}</td></tr>`;
+    }
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+  }
+
+  function renderParagraphWithVisualizations(paragraphText, uniqueId) {
+    if (!paragraphText) return '';
+    const lines = paragraphText.split('\n');
+    if (lines.length === 0) return escapeHtml(paragraphText);
+    const firstLine = lines[0].trim().toUpperCase();
+    const supported = ['[BARGRAPH]', '[LINEGRAPH]', '[PIEGRAPH]', '[TABLE]'];
+    let type = null;
+    for (let t of supported) if (firstLine.startsWith(t)) { type = t; break; }
+    if (!type) return `<div>${escapeHtml(paragraphText)}</div>`;
+
+    const titleLine = lines[1] ? lines[1].trim() : 'Data';
+    const dataLines = lines.slice(2).filter(l => l.includes(':'));
+    const data = {};
+    for (let line of dataLines) {
+      const [key, val] = line.split(':');
+      if (key && val) {
+        let numVal = parseFloat(val.trim());
+        data[key.trim()] = isNaN(numVal) ? val.trim() : numVal;
+      }
+    }
+    if (Object.keys(data).length === 0) return `<div>${escapeHtml(paragraphText)}</div>`;
+
+    const containerId = `viz_${uniqueId}`;
+    let html = `<div class="chart-container" id="${containerId}"></div>`;
+    requestAnimationFrame(() => {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      if (type === '[BARGRAPH]') {
+        const canvasId = `canvas_${uniqueId}`;
+        container.innerHTML = `<canvas id="${canvasId}" style="width:100%; max-width:500px; height:auto;"></canvas>`;
+        renderBarGraph(canvasId, titleLine, data);
+      } else if (type === '[LINEGRAPH]') {
+        const canvasId = `canvas_${uniqueId}`;
+        container.innerHTML = `<canvas id="${canvasId}" style="width:100%; max-width:500px; height:auto;"></canvas>`;
+        renderLineGraph(canvasId, titleLine, data);
+      } else if (type === '[PIEGRAPH]') {
+        const canvasId = `canvas_${uniqueId}`;
+        container.innerHTML = `<canvas id="${canvasId}" style="width:100%; max-width:500px; height:auto;"></canvas>`;
+        renderPieChart(canvasId, titleLine, data);
+      } else if (type === '[TABLE]') {
+        renderTable(containerId, titleLine, data);
+      }
+    });
+    return html;
+  }
+
+  let beforeUnloadWarningAdded = false;
+  function enableBeforeUnload(submittedFlagRef) {
+    if (beforeUnloadWarningAdded) return;
+    window.addEventListener('beforeunload', (e) => {
+      if (!submittedFlagRef.submitted) {
+        e.preventDefault();
+        e.returnValue = 'You have not submitted your test. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    });
+    beforeUnloadWarningAdded = true;
+  }
+
+  // ---------- THEME TOGGLE (for test page) ----------
+  function getThemeToggleHTML() {
+    const isDark = document.body.classList.contains('dark');
+    const icon = isDark ? '🌙' : '☀️';
+    return `<button class="theme-toggle-exam" id="themeToggleExam" aria-label="Toggle theme"><span id="themeIconExam">${icon}</span></button>`;
+  }
+
+  function setupThemeToggle() {
+    const toggle = document.getElementById('themeToggleExam');
+    const icon = document.getElementById('themeIconExam');
+    if (!toggle) return;
+    toggle.addEventListener('click', () => {
+      const isDark = !document.body.classList.contains('dark');
+      document.body.classList.toggle('dark', isDark);
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      icon.textContent = isDark ? '🌙' : '☀️';
+      showToast(`${isDark ? 'Dark' : 'Light'} mode`, 'info');
+    });
+  }
+
+  // Apply saved theme
+  if (localStorage.getItem('theme') === 'dark') {
+    document.body.classList.add('dark');
+  }
+
+  // ----- MAIN -----
+  const params = new URLSearchParams(window.location.search);
+  const testId = params.get('id');
+  if (!testId) {
+    document.body.innerHTML = '<div style="padding:2rem;text-align:center;">❌ No test ID. <a href="index.html">Go Home</a></div>';
+    showToast('No test ID provided.', 'error');
+  } else {
+    const test = getTestById(testId);
+    if (!test) {
+      document.body.innerHTML = '<div style="padding:2rem;text-align:center;">❌ Test not found. <a href="index.html">Return Home</a></div>';
+      showToast('Test not found.', 'error');
+    } else {
+      renderTestInterface(test);
+    }
+  }
+
+  // ---- renderTestInterface (with new UI) ----
+  function renderTestInterface(test) {
+    let currentIndex = 0;
+    let answers = new Array(test.questions.length).fill(null);
+    let markedForReview = new Array(test.questions.length).fill(false);
+    let timerInterval = null;
+    let timeSeconds = 0;
+    const app = document.getElementById('testApp');
+    const submittedRef = { submitted: false };
+    enableBeforeUnload(submittedRef);
+
+    function updateTimerDisplay() {
+      const mins = Math.floor(timeSeconds / 60);
+      const secs = timeSeconds % 60;
+      const timerSpan = document.getElementById('timerDisplay');
+      if (timerSpan) timerSpan.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    function startTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (!submittedRef.submitted) {
+          timeSeconds++;
+          updateTimerDisplay();
+        }
+      }, 1000);
+    }
+
+    function renderQuestionNav() {
+      const navContainer = document.getElementById('navGrid');
+      if (!navContainer) return;
+      navContainer.innerHTML = '';
+      for (let idx = 0; idx < test.questions.length; idx++) {
+        const btn = document.createElement('button');
+        btn.innerText = idx + 1;
+        btn.classList.add('nav-btn');
+        if (answers[idx] !== null) btn.classList.add('answered');
+        if (markedForReview[idx]) btn.classList.add('marked');
+        if (idx === currentIndex) btn.classList.add('current');
+        btn.addEventListener('click', () => {
+          currentIndex = idx;
+          renderMainQuestion();
+          renderQuestionNav();
+        });
+        navContainer.appendChild(btn);
+      }
+    }
+
+    function renderMainQuestion() {
+      const q = test.questions[currentIndex];
+      const mainPanel = document.getElementById('mainPanel');
+      if (!mainPanel) return;
+      const selectedVal = answers[currentIndex];
+      const visualHtml = q.paragraph ? renderParagraphWithVisualizations(q.paragraph, `q${currentIndex}_${Date.now()}`) : '';
+      mainPanel.innerHTML = `
+        <div class="question-card">
+          ${visualHtml ? `<div class="paragraph-box">📖 ${visualHtml}</div>` : ''}
+          <div class="question-text">${escapeHtml(q.question)}</div>
+          <div class="options-list" id="optionsList">
+            ${q.options.map((opt, optIdx) => `
+              <div class="option-item" data-opt-index="${optIdx}">
+                <input type="radio" name="questionOption" value="${optIdx}" id="opt_${optIdx}" ${selectedVal === optIdx ? 'checked' : ''}>
+                <label for="opt_${optIdx}" style="flex:1; cursor:pointer;">${escapeHtml(opt)}</label>
+              </div>
+            `).join('')}
+          </div>
+          <div class="action-buttons">
+            <button class="action-btn" id="prevBtn">◀ Previous</button>
+            <button class="action-btn" id="nextBtn">Next ▶</button>
+            <button class="action-btn" id="markBtn">${markedForReview[currentIndex] ? '★ Marked' : '☆ Mark for Review'}</button>
+            <button class="action-btn" id="explainBtn">💡 Show Explanation</button>
+          </div>
+        </div>
+      `;
+      document.querySelectorAll('input[name="questionOption"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+          const chosen = parseInt(e.target.value);
+          answers[currentIndex] = chosen;
+          renderQuestionNav();
+        });
+      });
+      document.getElementById('prevBtn')?.addEventListener('click', () => {
+        if (currentIndex > 0) { currentIndex--; renderMainQuestion(); renderQuestionNav(); }
+      });
+      document.getElementById('nextBtn')?.addEventListener('click', () => {
+        if (currentIndex < test.questions.length - 1) { currentIndex++; renderMainQuestion(); renderQuestionNav(); }
+      });
+      document.getElementById('markBtn')?.addEventListener('click', () => {
+        markedForReview[currentIndex] = !markedForReview[currentIndex];
+        renderMainQuestion();
+        renderQuestionNav();
+        showToast(`Question ${currentIndex + 1} ${markedForReview[currentIndex] ? 'marked' : 'unmarked'}`, 'info');
+      });
+      document.getElementById('explainBtn')?.addEventListener('click', () => {
+        showExplanationToast(test.questions[currentIndex].explanation, test.questions[currentIndex].question);
+      });
+    }
+
+    function submitAndShowResults() {
+      if (submittedRef.submitted) return;
+      submittedRef.submitted = true;
+      if (timerInterval) clearInterval(timerInterval);
+      let correctCount = 0;
+      const resultsDetail = [];
+      for (let idx = 0; idx < test.questions.length; idx++) {
+        const q = test.questions[idx];
+        const userAnswer = answers[idx];
+        const isCorrect = (userAnswer !== null && userAnswer === q.correct);
+        if (isCorrect) correctCount++;
+        resultsDetail.push({
+          question: q.question,
+          userAnswer: userAnswer !== null ? q.options[userAnswer] : 'Not answered',
+          correctAnswer: q.options[q.correct],
+          isCorrect,
+          explanation: q.explanation
+        });
+      }
+      const total = test.questions.length;
+      const percentage = ((correctCount / total) * 100).toFixed(1);
+      const score = correctCount;
+      saveAttempt({ testId: test.id, testName: test.name, score, total, percentage, date: new Date().toISOString(), answers });
+      showToast(`Test submitted! Score: ${score}/${total} (${percentage}%)`, 'success', 'Test Completed!');
+      const modalDiv = document.createElement('div');
+      modalDiv.className = 'results-modal';
+      modalDiv.innerHTML = `
+        <div class="results-card">
+          <div class="results-header"><h2>📊 Test Results</h2><p>${escapeHtml(test.name)} • ${new Date().toLocaleDateString()}</p></div>
+          <div class="score-summary">
+            <div class="score-card correct"><div class="score-value">${correctCount}/${total}</div><div class="score-label">✅ Correct</div></div>
+            <div class="score-card incorrect"><div class="score-value">${total - correctCount}/${total}</div><div class="score-label">❌ Incorrect</div></div>
+            <div class="score-card percentage"><div class="score-value">${percentage}%</div><div class="score-label">📈 Score</div></div>
+          </div>
+          <div class="results-content">
+            ${resultsDetail.map((d, i) => `
+              <div class="question-review-item ${d.isCorrect ? 'correct' : 'incorrect'}">
+                <div class="q-text">Q${i+1}: ${escapeHtml(d.question)}</div>
+                <div class="answer-detail">📌 Your answer: ${escapeHtml(d.userAnswer)}</div>
+                ${!d.isCorrect ? `<div class="answer-detail">✓ Correct: ${escapeHtml(d.correctAnswer)}</div>` : ''}
+                <div class="explanation-box"><strong>💡 Explanation:</strong> ${escapeHtml(d.explanation)}</div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="results-footer">
+            <button class="btn btn-secondary" id="closeModalBtn">Close</button>
+            <button class="btn btn-primary" id="homeBtn">🏠 Go Home</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modalDiv);
+      document.getElementById('closeModalBtn')?.addEventListener('click', () => modalDiv.remove());
+      document.getElementById('homeBtn')?.addEventListener('click', () => { modalDiv.remove(); window.location.href = 'index.html'; });
+    }
+
+    // Build UI
+    const toggleHTML = getThemeToggleHTML();
+    app.innerHTML = `
+      <div class="test-header">
+        <div class="test-title">📌 ${escapeHtml(test.name)} <span class="test-id">ID: ${test.id.slice(-8)}</span></div>
+        <div class="timer">⏱️ <span id="timerDisplay">00:00</span></div>
+        ${toggleHTML}
+        <button class="submit-btn" id="finalSubmitBtn">✅ Submit Test</button>
+      </div>
+      <div class="test-container">
+        <div class="question-nav">
+          <h4>📋 Navigator</h4>
+          <div class="nav-grid" id="navGrid"></div>
+          <div class="nav-legend">
+            <span class="nav-legend-item"><span class="dot answered"></span> Answered</span>
+            <span class="nav-legend-item"><span class="dot marked"></span> Marked</span>
+            <span class="nav-legend-item"><span class="dot current"></span> Current</span>
+          </div>
+        </div>
+        <div class="question-panel" id="mainPanel"></div>
+      </div>
+    `;
+
+    startTimer();
+    renderQuestionNav();
+    renderMainQuestion();
+
+    document.getElementById('finalSubmitBtn')?.addEventListener('click', () => {
+      const unansweredCount = answers.filter(a => a === null).length;
+      showConfirmationModal(() => submitAndShowResults(), unansweredCount);
+    });
+
+    setupThemeToggle();
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
+  }
+</script>
+</body>
+</html>

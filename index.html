@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Standard favicon -->
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+
+<!-- For modern browsers (supports PNG, SVG, etc.) -->
+<link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
+
+<!-- For Apple devices -->
+<link rel="apple-touch-icon" sizes="180x180" href="favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CETPrep — Smart Practice</title>
+    <link rel="icon" href="favicon.ico">
+    <link rel="stylesheet" href="index.css">
+    <!-- <link rel="icon" type="image/png" href="/favicon.ico"> -->
+</head>
+<body>
+
+<div class="app">
+
+    <!-- =========================================================
+         SIDEBAR
+         ========================================================= -->
+
+    <aside class="sidebar">
+
+        <div class="brand">
+            <div class="brand-mark">
+                <svg class="icon" viewBox="0 0 24 24">
+                    <path d="M2 10l10-5 10 5-10 5-10-5Z"/>
+                    <path d="M6 12.5v4c3 2 9 2 12 0v-4"/>
+                    <path d="M22 10v6"/>
+                </svg>
+            </div>
+            <div class="brand-name">CETPrep</div>
+        </div>
+
+        <nav class="nav">
+            <a href="#dashboard" class="nav-item active" data-page="dashboard">
+                <svg class="icon icon-sm" viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="7" height="7"/>
+                    <rect x="14" y="3" width="7" height="7"/>
+                    <rect x="3" y="14" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="#create" class="nav-item" data-page="create">
+                <svg class="icon icon-sm" viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/>
+                    <path d="M14 2v6h6"/>
+                    <path d="M12 18v-6"/>
+                    <path d="M9 15h6"/>
+                </svg>
+                <span>Create Test</span>
+            </a>
+            <a href="#tests" class="nav-item" data-page="tests">
+                <svg class="icon icon-sm" viewBox="0 0 24 24">
+                    <path d="M4 6h16"/>
+                    <path d="M4 12h16"/>
+                    <path d="M4 18h16"/>
+                    <path d="M8 4v16"/>
+                </svg>
+                <span>My Tests</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <button class="theme-toggle" id="themeToggle" type="button">
+                <svg class="icon icon-sm" id="themeIcon" viewBox="0 0 24 24">
+                    <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.5 6.5 0 0 0 21 12.8Z"/>
+                </svg>
+                <span id="themeText">Dark</span>
+            </button>
+        </div>
+
+    </aside>
+
+
+    <!-- =========================================================
+         MAIN
+         ========================================================= -->
+
+    <main class="main">
+
+
+        <!-- =====================================================
+             DASHBOARD
+             ===================================================== -->
+
+        <section id="dashboard" class="page active">
+
+            <div class="hero">
+                <div class="hero-content">
+                    <div class="hero-label">Smart Exam Preparation</div>
+                    <h1 class="hero-title">Master Exams with Smart Practice</h1>
+                    <p class="hero-description">
+                        Create custom mock tests, track your progress,
+                        and improve with detailed explanations — all for free.
+                    </p>
+                    <div class="hero-actions">
+                        <button class="btn btn-primary" data-go="create">
+                            <svg class="icon icon-sm" viewBox="0 0 24 24">
+                                <path d="M5 12h14"/>
+                                <path d="m13 6 6 6-6 6"/>
+                            </svg>
+                            Get Started
+                        </button>
+                        <button class="btn btn-secondary" data-go="tests">
+                            <svg class="icon icon-sm" viewBox="0 0 24 24">
+                                <path d="M4 5h16"/>
+                                <path d="M4 12h16"/>
+                                <path d="M4 19h16"/>
+                                <path d="M8 3v18"/>
+                            </svg>
+                            View My Tests
+                        </button>
+                    </div>
+                </div>
+
+                <div class="hero-analytics">
+                    <div class="analytics-card">
+                        <div class="analytics-label">Performance</div>
+                        <div class="analytics-title">Real-time Analytics</div>
+                        <div class="chart">
+                            <div class="bar" style="height:35%"></div>
+                            <div class="bar" style="height:42%"></div>
+                            <div class="bar" style="height:48%"></div>
+                            <div class="bar" style="height:55%"></div>
+                            <div class="bar" style="height:63%"></div>
+                            <div class="bar" style="height:70%"></div>
+                            <div class="bar" style="height:78%"></div>
+                            <div class="bar" style="height:88%"></div>
+                            <div class="bar" style="height:96%"></div>
+                        </div>
+                        <div class="analytics-stats">
+                            <div class="analytics-stat">
+                                <strong id="avgScore">0%</strong>
+                                <span>Avg. Score</span>
+                            </div>
+                            <div class="analytics-stat">
+                                <strong id="totalTests">0</strong>
+                                <span>Tests Taken</span>
+                            </div>
+                            <div class="analytics-stat">
+                                <strong id="bestScore">0%</strong>
+                                <span>Best Score</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- QUICK STATS -->
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg class="icon icon-sm" viewBox="0 0 24 24">
+                            <path d="M4 5h16"/>
+                            <path d="M4 12h16"/>
+                            <path d="M4 19h16"/>
+                            <path d="M8 3v18"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="stat-value" id="statCategories">5+</div>
+                        <div class="stat-label">Categories</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg class="icon icon-sm" viewBox="0 0 24 24">
+                            <path d="M12 3v18"/>
+                            <path d="M7 8h10"/>
+                            <path d="M7 16h10"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="stat-value" id="statTests">0</div>
+                        <div class="stat-label">Total Tests</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg class="icon icon-sm" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="9"/>
+                            <path d="M12 7v5l3 2"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="stat-value" id="statAttempts">0</div>
+                        <div class="stat-label">Total Attempts</div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- FEATURES -->
+
+            <div class="section-heading">
+                <div>
+                    <div class="section-eyebrow">Everything You Need</div>
+                    <h2 class="section-title">Built for smarter preparation</h2>
+                </div>
+                <p class="section-description">
+                    Practice your way with powerful tools designed
+                    around real exam preparation.
+                </p>
+            </div>
+
+            <div class="feature-grid">
+                <article class="feature-card">
+                    <div class="feature-icon">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/>
+                            <path d="M14 2v6h6"/>
+                            <path d="M8 13h8"/>
+                            <path d="M8 17h5"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Custom JSON Tests</h3>
+                    <p class="feature-description">Paste or upload JSON with questions, paragraphs, explanations, and charts.</p>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M4 19V5"/>
+                            <path d="M4 19h17"/>
+                            <path d="M7 16l4-5 3 3 5-7"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Data Visualisations</h3>
+                    <p class="feature-description">Bar, line, pie charts, and tables embedded directly into questions.</p>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M4 6h16"/>
+                            <path d="M4 12h16"/>
+                            <path d="M4 18h16"/>
+                            <circle cx="8" cy="6" r="1.5"/>
+                            <circle cx="15" cy="12" r="1.5"/>
+                            <circle cx="10" cy="18" r="1.5"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Smart Categorisation</h3>
+                    <p class="feature-description">Verbal, Logical, Quants, Misc — neatly grouped and filterable.</p>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M8 7v10"/>
+                            <path d="M16 7v10"/>
+                            <path d="M4 12h16"/>
+                            <path d="M8 7l-3 3"/>
+                            <path d="M8 7l3 3"/>
+                            <path d="M16 17l-3-3"/>
+                            <path d="M16 17l3-3"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Multiple Attempts</h3>
+                    <p class="feature-description">Retake any test in a new tab; each session is independent.</p>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M4 19V5"/>
+                            <path d="M4 19h16"/>
+                            <path d="M8 16v-4"/>
+                            <path d="M12 16V8"/>
+                            <path d="M16 16v-7"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Detailed History</h3>
+                    <p class="feature-description">Review past scores, best performances, and full explanations.</p>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="4"/>
+                            <path d="M12 2v2"/>
+                            <path d="M12 20v2"/>
+                            <path d="m4.93 4.93 1.41 1.41"/>
+                            <path d="m17.66 17.66 1.41 1.41"/>
+                            <path d="M2 12h2"/>
+                            <path d="M20 12h2"/>
+                            <path d="m4.93 19.07 1.41-1.41"/>
+                            <path d="m17.66 6.34 1.41-1.41"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Dark / Light Mode</h3>
+                    <p class="feature-description">Comfortable testing in any lighting condition.</p>
+                </article>
+            </div>
+
+
+            <!-- CTA -->
+
+            <div class="cta">
+                <div class="cta-content">
+                    <div class="cta-icon">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M12 3v18"/>
+                            <path d="M5 12h14"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="cta-eyebrow">Ready When You Are</div>
+                        <h3 class="cta-title">Ready to boost your score?</h3>
+                        <p class="cta-description">Create your first mock test in under a minute.</p>
+                    </div>
+                </div>
+                <div class="cta-actions">
+                    <button class="btn btn-primary" data-go="create">Create New Test</button>
+                    <button class="btn btn-secondary" data-go="tests">View My Tests</button>
+                </div>
+            </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             CREATE TEST
+             ===================================================== -->
+
+        <section id="create" class="page">
+
+            <div class="empty-page-header">
+                <div class="eyebrow">Test Builder</div>
+                <h1 class="page-title">Create Test</h1>
+                <p class="page-description">Build a custom mock test using your question data.</p>
+            </div>
+
+            <div class="create-panel">
+                <div class="form-group">
+                    <label for="testNameInput">Test Name</label>
+                    <input type="text" id="testNameInput" placeholder="e.g. Reading Comprehension Set" value="RC Practice">
+                </div>
+                <div class="form-group">
+                    <label for="testCategory">Category</label>
+                    <select id="testCategory">
+                        <option value="Verbal Ability">🗣️ Verbal Ability</option>
+                        <option value="Logical Reasoning">🧠 Logical Reasoning</option>
+                        <option value="Quants">📐 Quants</option>
+                        <option value="Misc">📁 Misc</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="jsonInput">JSON Format</label>
+                    <textarea id="jsonInput" rows="10" placeholder='[
+  {
+    "paragraph": "[BARGRAPH]\nSales Data\nA: 120\nB: 85\nC: 200",
+    "question": "Which product sold most?",
+    "options": ["A","B","C","D","E"],
+    "correct": 2,
+    "explanation": "C sold 200 units."
+  }
+]'></textarea>
+                    <span class="hint">Supports [BARGRAPH], [LINEGRAPH], [PIEGRAPH], [TABLE] in paragraph.</span>
+                </div>
+                <div class="form-group">
+                    <label>Or upload JSON file</label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="fileUpload" accept=".json">
+                        <span style="color:var(--text-muted); font-size:12px;" id="fileStatus">No file selected</span>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-primary" id="generateTestBtn">🚀 Create Test</button>
+                    <button class="btn btn-secondary" id="clearFormBtn" type="button">Clear</button>
+                </div>
+            </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             MY TESTS
+             ===================================================== -->
+
+        <section id="tests" class="page">
+
+            <div class="empty-page-header">
+                <div class="eyebrow">Your Practice</div>
+                <h1 class="page-title">My Tests</h1>
+                <p class="page-description">Review and continue your previous mock tests.</p>
+            </div>
+
+            <div id="testLibrary">
+                <!-- Tabs and content rendered by JS -->
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+
+<!-- =============================================================
+     JAVASCRIPT
+     ============================================================= -->
+
+<script>
+
+    /* =========================================================
+       STORAGE HELPERS
+       ========================================================= */
+
+    const STORAGE_KEY = 'cet_mock_tests_v3';
+    const OLD_KEY = 'cet_mock_tests_v2';
+    const ATTEMPTS_KEY = 'cet_test_attempts';
+
+    function getAllTests() {
+        let raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+            try { return JSON.parse(raw); } catch(e) { return []; }
+        }
+        const oldRaw = localStorage.getItem(OLD_KEY);
+        if (oldRaw) {
+            try {
+                const old = JSON.parse(oldRaw);
+                if (Array.isArray(old) && old.length) {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(old));
+                    return old;
+                }
+            } catch(e) {}
+        }
+        return [];
+    }
+
+    function getTestById(id) {
+        return getAllTests().find(t => t.id === id);
+    }
+
+    function saveTest(test) {
+        const tests = getAllTests();
+        tests.push(test);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tests));
+    }
+
+    function deleteTestById(id) {
+        let tests = getAllTests().filter(t => t.id !== id);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tests));
+        const attempts = getAllAttempts().filter(a => a.testId !== id);
+        localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(attempts));
+    }
+
+    function getAllAttempts() {
+        const raw = localStorage.getItem(ATTEMPTS_KEY);
+        return raw ? JSON.parse(raw) : [];
+    }
+
+    function getAttemptsForTest(testId) {
+        return getAllAttempts().filter(a => a.testId === testId);
+    }
+
+    function generateTestId() {
+        return 'test_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+    }
+
+    /* =========================================================
+       TOAST
+       ========================================================= */
+
+    function showToast(message, type = 'success', title = '') {
+        const container = document.getElementById('toastContainer') || (() => {
+            const div = document.createElement('div');
+            div.id = 'toastContainer';
+            div.className = 'toast-container';
+            document.body.appendChild(div);
+            return div;
+        })();
+        const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+        const titles = { success: 'Success!', error: 'Error!', info: 'Info', warning: 'Warning!' };
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<div class="toast-icon">${icons[type]}</div><div class="toast-content"><div class="toast-title">${title || titles[type]}</div><div class="toast-message">${message}</div></div>`;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.classList.add('hide');
+            setTimeout(() => toast.remove(), 300);
+        }, 3500);
+    }
+
+    /* =========================================================
+       MODALS
+       ========================================================= */
+
+    function showConfirmModal(message, onConfirm, onCancel = null) {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-box">
+                <h3>⚠️ Confirm</h3>
+                <p>${escapeHtml(message)}</p>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" id="modalCancel">Cancel</button>
+                    <button class="btn btn-danger" id="modalConfirm">Confirm</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        document.getElementById('modalCancel').addEventListener('click', () => { modal.remove(); if(onCancel) onCancel(); });
+        document.getElementById('modalConfirm').addEventListener('click', () => { modal.remove(); onConfirm(); });
+    }
+
+    function showHistoryModal(testId) {
+        const test = getTestById(testId);
+        if (!test) return;
+        const attempts = getAttemptsForTest(testId);
+        if (!attempts.length) {
+            showToast('No attempts yet.', 'info');
+            return;
+        }
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay history-modal';
+        modal.innerHTML = `
+            <div class="modal-box">
+                <div class="history-header">
+                    <h3>📊 ${escapeHtml(test.name)}</h3>
+                    <button class="history-close" id="closeHistoryBtn">&times;</button>
+                </div>
+                <div class="history-list">
+                    ${attempts.map((a, i) => `
+                        <div class="attempt-item">
+                            <div class="attempt-header">
+                                <span class="attempt-number">Attempt #${attempts.length - i}</span>
+                                <span class="attempt-date">${new Date(a.date).toLocaleString()}</span>
+                            </div>
+                            <div class="attempt-score">
+                                Score: <span>${a.score}/${a.total}</span>
+                            </div>
+                            <div class="attempt-percentage">
+                                ${a.percentage}% • ${a.percentage >= 70 ? '🎉 Excellent' : (a.percentage >= 40 ? '📈 Good' : '📚 Keep Practicing')}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="history-footer">
+                    <button class="btn btn-secondary" id="closeFooterBtn">Close</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        const closeModal = () => modal.remove();
+        document.getElementById('closeHistoryBtn')?.addEventListener('click', closeModal);
+        document.getElementById('closeFooterBtn')?.addEventListener('click', closeModal);
+    }
+
+    /* =========================================================
+       VALIDATE JSON
+       ========================================================= */
+
+    function validateJSONStructure(data) {
+        if (!Array.isArray(data)) return { valid: false, error: "Must be an array." };
+        if (!data.length) return { valid: false, error: "At least one question required." };
+        for (let i=0; i<data.length; i++) {
+            const q = data[i];
+            if (!q.question || typeof q.question !== 'string') return { valid: false, error: `Q${i+1}: missing question` };
+            if (!Array.isArray(q.options) || q.options.length !== 5) return { valid: false, error: `Q${i+1}: need 5 options` };
+            if (typeof q.correct !== 'number' || q.correct<0 || q.correct>4) return { valid: false, error: `Q${i+1}: correct 0-4` };
+            if (!q.explanation || typeof q.explanation !== 'string') return { valid: false, error: `Q${i+1}: missing explanation` };
+            if (q.hasOwnProperty('paragraph') && typeof q.paragraph !== 'string') return { valid: false, error: `Q${i+1}: paragraph must be string` };
+        }
+        return { valid: true };
+    }
+
+    /* =========================================================
+       PAGE NAVIGATION
+       ========================================================= */
+
+    const pages = document.querySelectorAll('.page');
+    const navItems = document.querySelectorAll('.nav-item');
+    const goButtons = document.querySelectorAll('[data-go]');
+
+    function showPage(pageName) {
+        const target = document.getElementById(pageName);
+        if (!target) return;
+        pages.forEach(page => page.classList.remove('active'));
+        target.classList.add('active');
+        navItems.forEach(item => {
+            item.classList.toggle('active', item.dataset.page === pageName);
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        history.replaceState(null, '', '#' + pageName);
+        if (pageName === 'tests') renderTestLibrary();
+        if (pageName === 'dashboard') updateDashboardStats();
+    }
+
+    navItems.forEach(item => {
+        item.addEventListener('click', event => {
+            event.preventDefault();
+            showPage(item.dataset.page);
+        });
+    });
+
+    goButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            showPage(button.dataset.go);
+        });
+    });
+
+    /* =========================================================
+       HASH ROUTING
+       ========================================================= */
+
+    function loadFromHash() {
+        const hash = window.location.hash.replace('#', '');
+        if (['dashboard', 'create', 'tests'].includes(hash)) {
+            showPage(hash);
+        } else {
+            showPage('dashboard');
+        }
+    }
+
+    window.addEventListener('hashchange', loadFromHash);
+
+    /* =========================================================
+       CREATE TEST
+       ========================================================= */
+
+    const testNameInput = document.getElementById('testNameInput');
+    const testCategory = document.getElementById('testCategory');
+    const jsonInput = document.getElementById('jsonInput');
+    const fileUpload = document.getElementById('fileUpload');
+    const generateBtn = document.getElementById('generateTestBtn');
+    const clearFormBtn = document.getElementById('clearFormBtn');
+    const fileStatus = document.getElementById('fileStatus');
+
+    // Pre-fill sample JSON if empty
+    if (!jsonInput.value) {
+        jsonInput.value = `[
+  {
+    "paragraph": "[BARGRAPH]\\nSales in 2024\\nProduct A: 120\\nProduct B: 85\\nProduct C: 200\\nProduct D: 45",
+    "question": "Best selling product?",
+    "options": ["A","B","C","D","E"],
+    "correct": 2,
+    "explanation": "Product C sold 200 units."
+  }
+]`;
+    }
+
+    // File upload
+    fileUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) {
+            fileStatus.textContent = 'No file selected';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            jsonInput.value = ev.target.result;
+            fileStatus.textContent = file.name + ' loaded ✓';
+            showToast('File loaded', 'success');
+        };
+        reader.readAsText(file);
+    });
+
+    // Clear form
+    clearFormBtn.addEventListener('click', () => {
+        testNameInput.value = '';
+        jsonInput.value = '';
+        fileUpload.value = '';
+        fileStatus.textContent = 'No file selected';
+    });
+
+    // Generate test
+    generateBtn.addEventListener('click', () => {
+        const name = testNameInput.value.trim();
+        const cat = testCategory.value;
+        const raw = jsonInput.value.trim();
+        if (!name) { showToast('Test name required', 'error'); return; }
+        if (!raw) { showToast('JSON required', 'error'); return; }
+        let parsed;
+        try { parsed = JSON.parse(raw); } catch(e) { showToast('Invalid JSON', 'error'); return; }
+        const validation = validateJSONStructure(parsed);
+        if (!validation.valid) { showToast(validation.error, 'error'); return; }
+        const id = generateTestId();
+        saveTest({ id, name, category: cat, questions: parsed, createdAt: new Date().toISOString() });
+        showToast(`Test "${name}" created in ${cat}`, 'success');
+        // Reset form
+        testNameInput.value = 'RC Practice';
+        jsonInput.value = '';
+        fileUpload.value = '';
+        fileStatus.textContent = 'No file selected';
+        // Update dashboard stats
+        updateDashboardStats();
+        // If user is on tests page, refresh
+        if (document.getElementById('tests').classList.contains('active')) {
+            renderTestLibrary();
+        }
+    });
+
+    /* =========================================================
+       MY TESTS – RENDER
+       ========================================================= */
+
+    function getCategoryBadge(cat) {
+        if (cat === 'Verbal Ability') return 'verbal';
+        if (cat === 'Logical Reasoning') return 'logical';
+        if (cat === 'Quants') return 'quants';
+        return 'misc';
+    }
+
+    function renderTestsForCategory(category, container) {
+        const tests = getAllTests().filter(t => (t.category || 'Misc') === category);
+        if (!tests.length) {
+            container.innerHTML = `
+                <div class="empty-state-card">
+                    <div class="empty-icon">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/><path d="M8 4v16"/></svg>
+                    </div>
+                    <h3>No tests in ${category}</h3>
+                    <p>Create your first test to get started.</p>
+                    <button class="btn btn-primary" data-go="create">Create a Test</button>
+                </div>
+            `;
+            return;
+        }
+
+        let html = `<div class="test-grid">`;
+        tests.forEach(test => {
+            const attempts = getAttemptsForTest(test.id);
+            const best = attempts.length ? Math.max(...attempts.map(a => parseFloat(a.percentage))) : 0;
+            const badgeClass = getCategoryBadge(test.category || 'Misc');
+            html += `
+                <div class="test-card-item">
+                    <div class="test-card-header">
+                        <h3 class="test-name">${escapeHtml(test.name)}</h3>
+                        <span class="test-badge ${badgeClass}">${test.category || 'Misc'}</span>
+                    </div>
+                    <div class="test-stats">
+                        <span>📄 ${test.questions.length} questions</span>
+                        ${attempts.length ? `<span>🏆 Best: <strong class="stat-best">${best}%</strong></span>` : ''}
+                        <span>${attempts.length} attempt${attempts.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary btn-sm attempt-btn" data-id="${test.id}">Attempt</button>
+                        <button class="btn btn-secondary btn-sm history-btn" data-id="${test.id}">History</button>
+                        <button class="btn btn-danger btn-sm delete-btn" data-id="${test.id}">Delete</button>
+                    </div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+
+        // Attach events
+        container.querySelectorAll('.attempt-btn').forEach(btn => {
+            btn.addEventListener('click', () => window.open(`./test.html?id=${btn.dataset.id}`, '_blank'));
+        });
+        container.querySelectorAll('.history-btn').forEach(btn => {
+            btn.addEventListener('click', () => showHistoryModal(btn.dataset.id));
+        });
+        container.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const test = getTestById(btn.dataset.id);
+                showConfirmModal(`Delete test "${escapeHtml(test?.name)}" permanently?`, () => {
+                    deleteTestById(btn.dataset.id);
+                    renderTestLibrary();
+                    updateDashboardStats();
+                    showToast('Test deleted', 'success');
+                });
+            });
+        });
+    }
+
+    function renderTestLibrary() {
+        const container = document.getElementById('testLibrary');
+        const categories = ['Verbal Ability', 'Logical Reasoning', 'Quants', 'Misc'];
+
+        // Build tabs
+        let tabsHtml = `<div class="category-tabs">`;
+        categories.forEach((cat, idx) => {
+            tabsHtml += `<button class="tab-btn ${idx === 0 ? 'active' : ''}" data-cat="${cat}">${cat}</button>`;
+        });
+        tabsHtml += `</div>`;
+
+        // Build content panels
+        let contentHtml = '';
+        categories.forEach((cat, idx) => {
+            const active = idx === 0 ? ' active' : '';
+            contentHtml += `<div class="tab-content${active}" id="tab-${cat.replace(/\s/g, '')}"></div>`;
+        });
+
+        container.innerHTML = tabsHtml + contentHtml;
+
+        // Render each category
+        categories.forEach(cat => {
+            const panel = document.getElementById(`tab-${cat.replace(/\s/g, '')}`);
+            renderTestsForCategory(cat, panel);
+        });
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const cat = btn.dataset.cat;
+                document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+                const target = document.getElementById(`tab-${cat.replace(/\s/g, '')}`);
+                if (target) target.classList.add('active');
+            });
+        });
+    }
+
+    /* =========================================================
+       DASHBOARD STATS
+       ========================================================= */
+
+    function updateDashboardStats() {
+        const tests = getAllTests();
+        const attempts = getAllAttempts();
+        document.getElementById('statTests').textContent = tests.length;
+        document.getElementById('statAttempts').textContent = attempts.length;
+        // Best score
+        let best = 0;
+        attempts.forEach(a => {
+            if (a.percentage > best) best = a.percentage;
+        });
+        document.getElementById('bestScore').textContent = best ? best + '%' : '0%';
+        // Average score
+        if (attempts.length) {
+            const avg = attempts.reduce((sum, a) => sum + parseFloat(a.percentage), 0) / attempts.length;
+            document.getElementById('avgScore').textContent = avg.toFixed(1) + '%';
+        } else {
+            document.getElementById('avgScore').textContent = '0%';
+        }
+        // Categories count (unique)
+        const cats = new Set(tests.map(t => t.category || 'Misc'));
+        document.getElementById('statCategories').textContent = cats.size + '+';
+    }
+
+    /* =========================================================
+       THEME
+       ========================================================= */
+
+    const themeToggle = document.getElementById('themeToggle');
+    const themeText = document.getElementById('themeText');
+    const themeIcon = document.getElementById('themeIcon');
+
+    function updateThemeUI() {
+        const isLight = document.body.classList.contains('light');
+        themeText.textContent = isLight ? 'Light' : 'Dark';
+        if (isLight) {
+            themeIcon.innerHTML = `
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v2"/>
+                <path d="M12 20v2"/>
+                <path d="m4.93 4.93 1.41 1.41"/>
+                <path d="m17.66 17.66 1.41 1.41"/>
+                <path d="M2 12h2"/>
+                <path d="M20 12h2"/>
+                <path d="m4.93 19.07 1.41-1.41"/>
+                <path d="m17.66 6.34 1.41-1.41"/>
+            `;
+        } else {
+            themeIcon.innerHTML = `
+                <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.5 6.5 0 0 0 21 12.8Z"/>
+            `;
+        }
+    }
+
+    themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('light');
+        const mode = document.body.classList.contains('light') ? 'light' : 'dark';
+        localStorage.setItem('cetprep-theme', mode);
+        updateThemeUI();
+    });
+
+    // Restore theme
+    const savedTheme = localStorage.getItem('cetprep-theme');
+    if (savedTheme === 'light') {
+        document.body.classList.add('light');
+    }
+    updateThemeUI();
+
+    /* =========================================================
+       ESCAPE HTML
+       ========================================================= */
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
+    }
+
+    /* =========================================================
+       INIT
+       ========================================================= */
+
+    loadFromHash();
+    updateDashboardStats();
+
+</script>
+
+</body>
+</html>
