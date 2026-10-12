@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CET Mock Test – Take Test</title>
-  <link rel="stylesheet" href="/test.css">
+  <link rel="stylesheet" href="test.css">
 </head>
 <body>
 <div id="testApp"></div>
@@ -14,6 +14,7 @@
   const CURRENT_STORAGE_KEY = 'cet_mock_tests_v3';
   const OLD_STORAGE_KEY = 'cet_mock_tests_v2';
   const ATTEMPTS_KEY = 'cet_test_attempts';
+  const THEME_KEY = 'cetprep-theme'; // Match index.html
 
   function getAllTests() {
     let raw = localStorage.getItem(CURRENT_STORAGE_KEY);
@@ -33,7 +34,7 @@
     const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
     const titles = { success: 'Success!', error: 'Error!', info: 'Info', warning: 'Warning!' };
     const toast = document.createElement('div'); toast.className = `toast ${type}`;
-    toast.innerHTML = `<div class="toast-icon">${icons[type]}</div><div class="toast-content"><div class="toast-title">${title || titles[type]}</div><div class="toast-message">${message}</div></div>`;
+    toast.innerHTML = `<div class="toast-icon">${icons[type]}</div><div class="toast-content"><div class="toast-title">${escapeHtml(title || titles[type])}</div><div class="toast-message">${escapeHtml(message)}</div></div>`;
     container.appendChild(toast); setTimeout(() => toast.remove(), 4000);
   }
 
@@ -49,8 +50,12 @@
     let warningText = unansweredCount > 0 ? `<p style="color: var(--color-warning); margin-bottom: 1rem;">⚠️ You have ${unansweredCount} unanswered question(s)!</p>` : '';
     modal.innerHTML = `<div class="modal-box"><h3>📝 Submit Test?</h3>${warningText}<p>Are you sure you want to submit your test? You won't be able to change your answers after submission.</p><div class="modal-actions"><button class="btn btn-secondary" id="cancelSubmit">Cancel</button><button class="btn btn-danger" id="confirmSubmit">Yes, Submit</button></div></div>`;
     document.body.appendChild(modal);
-    document.getElementById('cancelSubmit').addEventListener('click', () => { modal.remove(); showToast('Submission cancelled.', 'info'); });
-    document.getElementById('confirmSubmit').addEventListener('click', () => { modal.remove(); onConfirm(); });
+    const cancelHandler = () => { modal.remove(); showToast('Submission cancelled.', 'info'); document.removeEventListener('keydown', escHandler); };
+    const confirmHandler = () => { modal.remove(); onConfirm(); document.removeEventListener('keydown', escHandler); };
+    const escHandler = (e) => { if (e.key === 'Escape') cancelHandler(); };
+    document.getElementById('cancelSubmit').addEventListener('click', cancelHandler);
+    document.getElementById('confirmSubmit').addEventListener('click', confirmHandler);
+    document.addEventListener('keydown', escHandler);
   }
 
   // ========== GRAPH RENDERING (unchanged) ==========
@@ -186,14 +191,20 @@
     const titleLine = lines[1] ? lines[1].trim() : 'Data';
     const dataLines = lines.slice(2).filter(l => l.includes(':'));
     const data = {};
+    let hasValidData = false;
     for (let line of dataLines) {
       const [key, val] = line.split(':');
       if (key && val) {
         let numVal = parseFloat(val.trim());
-        data[key.trim()] = isNaN(numVal) ? val.trim() : numVal;
+        if (isNaN(numVal)) {
+          // Non-numeric value - skip chart rendering, show as text
+          return `<div>${escapeHtml(paragraphText)}</div>`;
+        }
+        data[key.trim()] = numVal;
+        hasValidData = true;
       }
     }
-    if (Object.keys(data).length === 0) return `<div>${escapeHtml(paragraphText)}</div>`;
+    if (!hasValidData || Object.keys(data).length === 0) return `<div>${escapeHtml(paragraphText)}</div>`;
 
     const containerId = `viz_${uniqueId}`;
     let html = `<div class="chart-container" id="${containerId}"></div>`;
@@ -243,19 +254,27 @@
     const toggle = document.getElementById('themeToggleExam');
     const icon = document.getElementById('themeIconExam');
     if (!toggle) return;
-    toggle.addEventListener('click', () => {
+    const handler = () => {
       const isDark = !document.body.classList.contains('dark');
       document.body.classList.toggle('dark', isDark);
-      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
       icon.textContent = isDark ? '🌙' : '☀️';
       showToast(`${isDark ? 'Dark' : 'Light'} mode`, 'info');
-    });
+    };
+    toggle.addEventListener('click', handler);
+    // Store cleanup function
+    window.__themeToggleCleanup = () => toggle.removeEventListener('click', handler);
   }
 
   // Apply saved theme
-  if (localStorage.getItem('theme') === 'dark') {
+  if (localStorage.getItem(THEME_KEY) === 'dark') {
     document.body.classList.add('dark');
   }
+
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', () => {
+    if (window.__testCleanup) window.__testCleanup();
+  });
 
   // ----- MAIN -----
   const params = new URLSearchParams(window.location.search);
@@ -282,6 +301,7 @@
     let timeSeconds = 0;
     const app = document.getElementById('testApp');
     const submittedRef = { submitted: false };
+    const cleanupFns = [];
     enableBeforeUnload(submittedRef);
 
     function updateTimerDisplay() {
@@ -299,6 +319,7 @@
         }
       }, 1000);
     }
+    cleanupFns.push(() => { if (timerInterval) clearInterval(timerInterval); });
 
     function renderQuestionNav() {
       const navContainer = document.getElementById('navGrid');
@@ -311,11 +332,13 @@
         if (answers[idx] !== null) btn.classList.add('answered');
         if (markedForReview[idx]) btn.classList.add('marked');
         if (idx === currentIndex) btn.classList.add('current');
-        btn.addEventListener('click', () => {
+        const handler = () => {
           currentIndex = idx;
           renderMainQuestion();
           renderQuestionNav();
-        });
+        };
+        btn.addEventListener('click', handler);
+        cleanupFns.push(() => btn.removeEventListener('click', handler));
         navContainer.appendChild(btn);
       }
     }
@@ -325,7 +348,9 @@
       const mainPanel = document.getElementById('mainPanel');
       if (!mainPanel) return;
       const selectedVal = answers[currentIndex];
-      const visualHtml = q.paragraph ? renderParagraphWithVisualizations(q.paragraph, `q${currentIndex}_${Date.now()}`) : '';
+      // Use crypto.randomUUID for unique IDs
+      const uniqueId = `q${currentIndex}_${crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).substr(2, 8)}`;
+      const visualHtml = q.paragraph ? renderParagraphWithVisualizations(q.paragraph, uniqueId) : '';
       mainPanel.innerHTML = `
         <div class="question-card">
           ${visualHtml ? `<div class="paragraph-box">📖 ${visualHtml}</div>` : ''}
@@ -347,27 +372,40 @@
         </div>
       `;
       document.querySelectorAll('input[name="questionOption"]').forEach(radio => {
-        radio.addEventListener('change', (e) => {
+        const handler = (e) => {
           const chosen = parseInt(e.target.value);
           answers[currentIndex] = chosen;
           renderQuestionNav();
-        });
+        };
+        radio.addEventListener('change', handler);
+        cleanupFns.push(() => radio.removeEventListener('change', handler));
       });
-      document.getElementById('prevBtn')?.addEventListener('click', () => {
+      const prevHandler = () => {
         if (currentIndex > 0) { currentIndex--; renderMainQuestion(); renderQuestionNav(); }
-      });
-      document.getElementById('nextBtn')?.addEventListener('click', () => {
+      };
+      document.getElementById('prevBtn')?.addEventListener('click', prevHandler);
+      cleanupFns.push(() => document.getElementById('prevBtn')?.removeEventListener('click', prevHandler));
+
+      const nextHandler = () => {
         if (currentIndex < test.questions.length - 1) { currentIndex++; renderMainQuestion(); renderQuestionNav(); }
-      });
-      document.getElementById('markBtn')?.addEventListener('click', () => {
+      };
+      document.getElementById('nextBtn')?.addEventListener('click', nextHandler);
+      cleanupFns.push(() => document.getElementById('nextBtn')?.removeEventListener('click', nextHandler));
+
+      const markHandler = () => {
         markedForReview[currentIndex] = !markedForReview[currentIndex];
         renderMainQuestion();
         renderQuestionNav();
         showToast(`Question ${currentIndex + 1} ${markedForReview[currentIndex] ? 'marked' : 'unmarked'}`, 'info');
-      });
-      document.getElementById('explainBtn')?.addEventListener('click', () => {
+      };
+      document.getElementById('markBtn')?.addEventListener('click', markHandler);
+      cleanupFns.push(() => document.getElementById('markBtn')?.removeEventListener('click', markHandler));
+
+      const explainHandler = () => {
         showExplanationToast(test.questions[currentIndex].explanation, test.questions[currentIndex].question);
-      });
+      };
+      document.getElementById('explainBtn')?.addEventListener('click', explainHandler);
+      cleanupFns.push(() => document.getElementById('explainBtn')?.removeEventListener('click', explainHandler));
     }
 
     function submitAndShowResults() {
@@ -386,14 +424,21 @@
           userAnswer: userAnswer !== null ? q.options[userAnswer] : 'Not answered',
           correctAnswer: q.options[q.correct],
           isCorrect,
-          explanation: q.explanation
+          explanation: q.explanation,
+          paragraph: q.paragraph || '',
+          options: q.options
         });
       }
       const total = test.questions.length;
       const percentage = ((correctCount / total) * 100).toFixed(1);
       const score = correctCount;
-      saveAttempt({ testId: test.id, testName: test.name, score, total, percentage, date: new Date().toISOString(), answers });
+      const attemptData = { testId: test.id, testName: test.name, score, total, percentage, date: new Date().toISOString(), answers };
+      saveAttempt(attemptData);
       showToast(`Test submitted! Score: ${score}/${total} (${percentage}%)`, 'success', 'Test Completed!');
+
+      // Generate CSV content
+      const csvContent = generateCSV(test, resultsDetail, { score, total, percentage, date: attemptData.date, timeSeconds });
+
       const modalDiv = document.createElement('div');
       modalDiv.className = 'results-modal';
       modalDiv.innerHTML = `
@@ -415,14 +460,76 @@
             `).join('')}
           </div>
           <div class="results-footer">
-            <button class="btn btn-secondary" id="closeModalBtn">Close</button>
+            <button class="btn btn-secondary" id="exportCsvBtn">📥 Export CSV</button>
             <button class="btn btn-primary" id="homeBtn">🏠 Go Home</button>
           </div>
         </div>
       `;
       document.body.appendChild(modalDiv);
-      document.getElementById('closeModalBtn')?.addEventListener('click', () => modalDiv.remove());
-      document.getElementById('homeBtn')?.addEventListener('click', () => { modalDiv.remove(); window.location.href = 'index.html'; });
+      const exportHandler = () => downloadCSV(csvContent, `CETPrep_${test.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+      const homeHandler = () => { modalDiv.remove(); window.location.href = 'index.html'; };
+      document.getElementById('exportCsvBtn')?.addEventListener('click', exportHandler);
+      document.getElementById('homeBtn')?.addEventListener('click', homeHandler);
+      cleanupFns.push(() => {
+        document.getElementById('exportCsvBtn')?.removeEventListener('click', exportHandler);
+        document.getElementById('homeBtn')?.removeEventListener('click', homeHandler);
+      });
+    }
+
+    function generateCSV(test, resultsDetail, summary) {
+      const rows = [];
+      // Header
+      rows.push([
+        'Test Name', 'Category', 'Date', 'Time Taken (seconds)', 'Score', 'Total', 'Percentage'
+      ]);
+      rows.push([
+        test.name, test.category || 'Misc', summary.date, summary.timeSeconds, summary.score, summary.total, summary.percentage + '%'
+      ]);
+      rows.push([]); // blank row
+
+      // Question details header
+      rows.push([
+        'Question #', 'Question', 'Your Answer', 'Correct Answer', 'Result', 'Options', 'Explanation', 'Paragraph/Data'
+      ]);
+
+      resultsDetail.forEach((d, i) => {
+        const optionsStr = d.options.join(' | ');
+        const paragraphStr = d.paragraph ? d.paragraph.replace(/\n/g, ' ') : '';
+        rows.push([
+          i + 1,
+          d.question,
+          d.userAnswer,
+          d.correctAnswer,
+          d.isCorrect ? 'Correct' : 'Incorrect',
+          optionsStr,
+          d.explanation,
+          paragraphStr
+        ]);
+      });
+
+      // Escape CSV values
+      return rows.map(row =>
+        row.map(cell => {
+          const str = String(cell || '');
+          if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return '"' + str.replace(/"/g, '""') + '"';
+          }
+          return str;
+        }).join(',')
+      ).join('\n');
+    }
+
+    function downloadCSV(content, filename) {
+      const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(link.href), 100);
+      showToast('CSV exported successfully!', 'success');
     }
 
     // Build UI
@@ -430,9 +537,11 @@
     app.innerHTML = `
       <div class="test-header">
         <div class="test-title">📌 ${escapeHtml(test.name)} <span class="test-id">ID: ${test.id.slice(-8)}</span></div>
-        <div class="timer">⏱️ <span id="timerDisplay">00:00</span></div>
-        ${toggleHTML}
-        <button class="submit-btn" id="finalSubmitBtn">✅ Submit Test</button>
+        <div class="header-controls">
+          <div class="timer">⏱️ <span id="timerDisplay">00:00</span></div>
+          ${toggleHTML}
+          <button class="submit-btn" id="finalSubmitBtn">✅ Submit Test</button>
+        </div>
       </div>
       <div class="test-container">
         <div class="question-nav">
@@ -452,12 +561,19 @@
     renderQuestionNav();
     renderMainQuestion();
 
-    document.getElementById('finalSubmitBtn')?.addEventListener('click', () => {
+    const submitHandler = () => {
       const unansweredCount = answers.filter(a => a === null).length;
       showConfirmationModal(() => submitAndShowResults(), unansweredCount);
-    });
+    };
+    document.getElementById('finalSubmitBtn')?.addEventListener('click', submitHandler);
+    cleanupFns.push(() => document.getElementById('finalSubmitBtn')?.removeEventListener('click', submitHandler));
 
     setupThemeToggle();
+    // Add theme toggle cleanup
+    cleanupFns.push(() => { if (window.__themeToggleCleanup) window.__themeToggleCleanup(); });
+
+    // Expose cleanup for page unload
+    window.__testCleanup = () => cleanupFns.forEach(fn => fn());
   }
 
   function escapeHtml(str) {

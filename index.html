@@ -421,6 +421,7 @@
     const STORAGE_KEY = 'cet_mock_tests_v3';
     const OLD_KEY = 'cet_mock_tests_v2';
     const ATTEMPTS_KEY = 'cet_test_attempts';
+    const THEME_KEY = 'cetprep-theme';
 
     function getAllTests() {
         let raw = localStorage.getItem(STORAGE_KEY);
@@ -467,7 +468,7 @@
     }
 
     function generateTestId() {
-        return 'test_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+        return 'test_' + (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).substr(2, 8));
     }
 
     /* =========================================================
@@ -486,7 +487,7 @@
         const titles = { success: 'Success!', error: 'Error!', info: 'Info', warning: 'Warning!' };
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
-        toast.innerHTML = `<div class="toast-icon">${icons[type]}</div><div class="toast-content"><div class="toast-title">${title || titles[type]}</div><div class="toast-message">${message}</div></div>`;
+        toast.innerHTML = `<div class="toast-icon">${icons[type]}</div><div class="toast-content"><div class="toast-title">${escapeHtml(title || titles[type])}</div><div class="toast-message">${escapeHtml(message)}</div></div>`;
         container.appendChild(toast);
         setTimeout(() => {
             toast.classList.add('hide');
@@ -512,8 +513,14 @@
             </div>
         `;
         document.body.appendChild(modal);
-        document.getElementById('modalCancel').addEventListener('click', () => { modal.remove(); if(onCancel) onCancel(); });
-        document.getElementById('modalConfirm').addEventListener('click', () => { modal.remove(); onConfirm(); });
+        const cancelHandler = () => { modal.remove(); if(onCancel) onCancel(); };
+        const confirmHandler = () => { modal.remove(); onConfirm(); };
+        document.getElementById('modalCancel').addEventListener('click', cancelHandler);
+        document.getElementById('modalConfirm').addEventListener('click', confirmHandler);
+        // Cleanup on escape key
+        const escHandler = (e) => { if (e.key === 'Escape') { modal.remove(); if(onCancel) onCancel(); document.removeEventListener('keydown', escHandler); } };
+        document.addEventListener('keydown', escHandler);
+        modal.addEventListener('remove', () => document.removeEventListener('keydown', escHandler), { once: true });
     }
 
     function showHistoryModal(testId) {
@@ -554,7 +561,9 @@
             </div>
         `;
         document.body.appendChild(modal);
-        const closeModal = () => modal.remove();
+        const closeModal = () => { modal.remove(); document.removeEventListener('keydown', escHandler); };
+        const escHandler = (e) => { if (e.key === 'Escape') closeModal(); };
+        document.addEventListener('keydown', escHandler);
         document.getElementById('closeHistoryBtn')?.addEventListener('click', closeModal);
         document.getElementById('closeFooterBtn')?.addEventListener('click', closeModal);
     }
@@ -566,6 +575,7 @@
     function validateJSONStructure(data) {
         if (!Array.isArray(data)) return { valid: false, error: "Must be an array." };
         if (!data.length) return { valid: false, error: "At least one question required." };
+        const supportedCharts = ['[BARGRAPH]', '[LINEGRAPH]', '[PIEGRAPH]', '[TABLE]'];
         for (let i=0; i<data.length; i++) {
             const q = data[i];
             if (!q.question || typeof q.question !== 'string') return { valid: false, error: `Q${i+1}: missing question` };
@@ -573,6 +583,23 @@
             if (typeof q.correct !== 'number' || q.correct<0 || q.correct>4) return { valid: false, error: `Q${i+1}: correct 0-4` };
             if (!q.explanation || typeof q.explanation !== 'string') return { valid: false, error: `Q${i+1}: missing explanation` };
             if (q.hasOwnProperty('paragraph') && typeof q.paragraph !== 'string') return { valid: false, error: `Q${i+1}: paragraph must be string` };
+            // Validate paragraph chart data format
+            if (q.paragraph) {
+                const lines = q.paragraph.split('\n');
+                const firstLine = lines[0]?.trim().toUpperCase() || '';
+                const isChart = supportedCharts.some(c => firstLine.startsWith(c));
+                if (isChart) {
+                    if (lines.length < 3) return { valid: false, error: `Q${i+1}: chart needs title + data lines` };
+                    const dataLines = lines.slice(2).filter(l => l.includes(':'));
+                    if (!dataLines.length) return { valid: false, error: `Q${i+1}: chart data lines must be 'Key: Value'` };
+                    for (let line of dataLines) {
+                        const [, val] = line.split(':');
+                        if (val === undefined || val.trim() === '') return { valid: false, error: `Q${i+1}: missing value in '${line}'` };
+                        const numVal = parseFloat(val.trim());
+                        if (isNaN(numVal)) return { valid: false, error: `Q${i+1}: chart values must be numbers, got '${val.trim()}'` };
+                    }
+                }
+            }
         }
         return { valid: true };
     }
@@ -585,7 +612,15 @@
     const navItems = document.querySelectorAll('.nav-item');
     const goButtons = document.querySelectorAll('[data-go]');
 
+    // Page-specific cleanup (for form handlers, tab listeners, etc.)
+    // Global nav/goButtons are NOT cleaned up - they persist across SPA navigation
+    let currentPageCleanup = [];
+
     function showPage(pageName) {
+        // Run cleanup for previous page's specific handlers only
+        currentPageCleanup.forEach(fn => fn());
+        currentPageCleanup = [];
+
         const target = document.getElementById(pageName);
         if (!target) return;
         pages.forEach(page => page.classList.remove('active'));
@@ -600,7 +635,7 @@
     }
 
     navItems.forEach(item => {
-        item.addEventListener('click', event => {
+        item.addEventListener('click', (event) => {
             event.preventDefault();
             showPage(item.dataset.page);
         });
@@ -625,7 +660,7 @@
         }
     }
 
-    window.addEventListener('hashchange', loadFromHash);
+window.addEventListener('hashchange', loadFromHash);
 
     /* =========================================================
        CREATE TEST
@@ -641,19 +676,18 @@
 
     // Pre-fill sample JSON if empty
     if (!jsonInput.value) {
-        jsonInput.value = `[
-  {
-    "paragraph": "[BARGRAPH]\\nSales in 2024\\nProduct A: 120\\nProduct B: 85\\nProduct C: 200\\nProduct D: 45",
-    "question": "Best selling product?",
-    "options": ["A","B","C","D","E"],
-    "correct": 2,
-    "explanation": "Product C sold 200 units."
-  }
-]`;
+        const sample = [{
+            paragraph: "[BARGRAPH]\nSales in 2024\nProduct A: 120\nProduct B: 85\nProduct C: 200\nProduct D: 45",
+            question: "Best selling product?",
+            options: ["A","B","C","D","E"],
+            correct: 2,
+            explanation: "Product C sold 200 units."
+        }];
+        jsonInput.value = JSON.stringify(sample, null, 2);
     }
 
     // File upload
-    fileUpload.addEventListener('change', (e) => {
+    const fileUploadHandler = (e) => {
         const file = e.target.files[0];
         if (!file) {
             fileStatus.textContent = 'No file selected';
@@ -666,18 +700,19 @@
             showToast('File loaded', 'success');
         };
         reader.readAsText(file);
-    });
+    };
+fileUpload.addEventListener('change', fileUploadHandler);
 
     // Clear form
-    clearFormBtn.addEventListener('click', () => {
+    const clearFormHandler = () => {
         testNameInput.value = '';
         jsonInput.value = '';
         fileUpload.value = '';
         fileStatus.textContent = 'No file selected';
-    });
-
+    };
+   clearFormBtn.addEventListener('click', clearFormHandler);
     // Generate test
-    generateBtn.addEventListener('click', () => {
+    const generateHandler = () => {
         const name = testNameInput.value.trim();
         const cat = testCategory.value;
         const raw = jsonInput.value.trim();
@@ -701,9 +736,9 @@
         if (document.getElementById('tests').classList.contains('active')) {
             renderTestLibrary();
         }
-    });
-
-    /* =========================================================
+    };
+      generateBtn.addEventListener('click', generateHandler);
+        /* =========================================================
        MY TESTS – RENDER
        ========================================================= */
 
@@ -714,17 +749,21 @@
         return 'misc';
     }
 
-    function renderTestsForCategory(category, container) {
-        const tests = getAllTests().filter(t => (t.category || 'Misc') === category);
+    function renderTestsForCategory(category, container, searchTerm = '') {
+        let tests = getAllTests().filter(t => (t.category || 'Misc') === category);
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase().trim();
+            tests = tests.filter(t => t.name.toLowerCase().includes(term));
+        }
         if (!tests.length) {
             container.innerHTML = `
                 <div class="empty-state-card">
                     <div class="empty-icon">
                         <svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/><path d="M8 4v16"/></svg>
                     </div>
-                    <h3>No tests in ${category}</h3>
-                    <p>Create your first test to get started.</p>
-                    <button class="btn btn-primary" data-go="create">Create a Test</button>
+                    <h3>${searchTerm ? 'No matching tests' : 'No tests in ' + category}</h3>
+                    <p>${searchTerm ? 'Try a different search term.' : 'Create your first test to get started.'}</p>
+                    ${!searchTerm ? `<button class="btn btn-primary" data-go="create">Create a Test</button>` : ''}
                 </div>
             `;
             return;
@@ -780,19 +819,30 @@
     function renderTestLibrary() {
         const container = document.getElementById('testLibrary');
         const categories = ['Verbal Ability', 'Logical Reasoning', 'Quants', 'Misc'];
+        // Track search inputs for filtering
+        const searchInputs = {};
 
-        // Build tabs
+        // Build tabs with search
         let tabsHtml = `<div class="category-tabs">`;
         categories.forEach((cat, idx) => {
             tabsHtml += `<button class="tab-btn ${idx === 0 ? 'active' : ''}" data-cat="${cat}">${cat}</button>`;
         });
         tabsHtml += `</div>`;
 
-        // Build content panels
+        // Build content panels with search bar
         let contentHtml = '';
         categories.forEach((cat, idx) => {
             const active = idx === 0 ? ' active' : '';
-            contentHtml += `<div class="tab-content${active}" id="tab-${cat.replace(/\s/g, '')}"></div>`;
+            const searchId = `search-${cat.replace(/\s/g, '')}`;
+            contentHtml += `
+                <div class="tab-content${active}" id="tab-${cat.replace(/\s/g, '')}">
+                    <div class="search-wrapper">
+                        <input type="text" class="search-input" id="${searchId}" placeholder="Search ${cat} tests..." autocomplete="off">
+                        <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                    </div>
+                    <div class="test-list" id="list-${cat.replace(/\s/g, '')}"></div>
+                </div>
+            `;
         });
 
         container.innerHTML = tabsHtml + contentHtml;
@@ -800,19 +850,38 @@
         // Render each category
         categories.forEach(cat => {
             const panel = document.getElementById(`tab-${cat.replace(/\s/g, '')}`);
-            renderTestsForCategory(cat, panel);
+            const listContainer = panel.querySelector('.test-list');
+            renderTestsForCategory(cat, listContainer);
+            // Store search input reference
+            searchInputs[cat] = panel.querySelector('.search-input');
         });
 
-        // Tab switching
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
+        // Search handlers
+        categories.forEach(cat => {
+            const input = searchInputs[cat];
+            if (!input) return;
+            const handler = (e) => {
+                const term = e.target.value;
+                const listContainer = document.getElementById(`list-${cat.replace(/\s/g, '')}`);
+                renderTestsForCategory(cat, listContainer, term);
+            };
+            input.addEventListener('input', handler);
+            currentPageCleanup.push(() => input.removeEventListener('input', handler));
+        });
+
+        // Tab switching with cleanup
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        tabButtons.forEach(btn => {
+            const handler = () => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 const cat = btn.dataset.cat;
                 document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
                 const target = document.getElementById(`tab-${cat.replace(/\s/g, '')}`);
                 if (target) target.classList.add('active');
-            });
+            };
+            btn.addEventListener('click', handler);
+            currentPageCleanup.push(() => btn.removeEventListener('click', handler));
         });
     }
 
@@ -873,15 +942,17 @@
         }
     }
 
-    themeToggle.addEventListener('click', () => {
+    const themeToggleHandler = () => {
         document.body.classList.toggle('light');
         const mode = document.body.classList.contains('light') ? 'light' : 'dark';
-        localStorage.setItem('cetprep-theme', mode);
+        localStorage.setItem(THEME_KEY, mode);
         updateThemeUI();
-    });
+    };
+    themeToggle.addEventListener('click', themeToggleHandler);
+    // Theme toggle is in sidebar (global) - NOT added to currentPageCleanup
 
     // Restore theme
-    const savedTheme = localStorage.getItem('cetprep-theme');
+    const savedTheme = localStorage.getItem(THEME_KEY);
     if (savedTheme === 'light') {
         document.body.classList.add('light');
     }
