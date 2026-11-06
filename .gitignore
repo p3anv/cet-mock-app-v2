@@ -1,0 +1,33 @@
+# unslop skill folder
+unslop/
+
+# Design source files (large HTML-escaped SVG)
+design.svg
+design_files/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local env
+.env
+.env.local
+.env.*.local
+
+# Test/coverage
+coverage/
+.nyc_output/
+
+# Build
+dist/
+build/

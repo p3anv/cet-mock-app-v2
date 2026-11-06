@@ -31,8 +31,8 @@
 
   function showToast(message, type = 'success', title = '') {
     const container = document.getElementById('toastContainer') || (() => { const div = document.createElement('div'); div.id = 'toastContainer'; div.className = 'toast-container'; document.body.appendChild(div); return div; })();
-    const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
-    const titles = { success: 'Success!', error: 'Error!', info: 'Info', warning: 'Warning!' };
+    const icons = { success: '✓', error: '✕', info: 'i', warning: '!' };
+    const titles = { success: 'Success', error: 'Error', info: 'Info', warning: 'Warning' };
     const toast = document.createElement('div'); toast.className = `toast ${type}`;
     toast.innerHTML = `<div class="toast-icon">${icons[type]}</div><div class="toast-content"><div class="toast-title">${escapeHtml(title || titles[type])}</div><div class="toast-message">${escapeHtml(message)}</div></div>`;
     container.appendChild(toast); setTimeout(() => toast.remove(), 4000);
@@ -41,14 +41,14 @@
   function showExplanationToast(explanation, questionText) {
     const container = document.getElementById('explanationToastContainer') || (() => { const div = document.createElement('div'); div.id = 'explanationToastContainer'; div.className = 'explanation-toast-container'; document.body.appendChild(div); return div; })();
     const toast = document.createElement('div'); toast.className = 'explanation-toast';
-    toast.innerHTML = `<div class="explanation-title">📖 Explanation</div><div style="font-size:0.85rem; color:var(--color-text-secondary);">${escapeHtml(questionText.substring(0, 80))}${questionText.length > 80 ? '...' : ''}</div><div class="explanation-text">${escapeHtml(explanation)}</div>`;
+    toast.innerHTML = `<div class="explanation-title">Explanation</div><div style="font-size:0.85rem; color:var(--color-text-secondary);">${escapeHtml(questionText.substring(0, 80))}${questionText.length > 80 ? '...' : ''}</div><div class="explanation-text">${escapeHtml(explanation)}</div>`;
     container.appendChild(toast); setTimeout(() => toast.remove(), 5000);
   }
 
   function showConfirmationModal(onConfirm, unansweredCount) {
     const modal = document.createElement('div'); modal.className = 'modal-overlay';
-    let warningText = unansweredCount > 0 ? `<p style="color: var(--color-warning); margin-bottom: 1rem;">⚠️ You have ${unansweredCount} unanswered question(s)!</p>` : '';
-    modal.innerHTML = `<div class="modal-box"><h3>📝 Submit Test?</h3>${warningText}<p>Are you sure you want to submit your test? You won't be able to change your answers after submission.</p><div class="modal-actions"><button class="btn btn-secondary" id="cancelSubmit">Cancel</button><button class="btn btn-danger" id="confirmSubmit">Yes, Submit</button></div></div>`;
+    let warningText = unansweredCount > 0 ? `<p style="color: var(--color-warning); margin-bottom: 1rem;">You have ${unansweredCount} unanswered question(s).</p>` : '';
+    modal.innerHTML = `<div class="modal-box"><h3>Submit test?</h3>${warningText}<p>Are you sure you want to submit? You won't be able to change your answers after submission.</p><div class="modal-actions"><button class="btn btn-secondary" id="cancelSubmit">Cancel</button><button class="btn btn-danger" id="confirmSubmit">Yes, submit</button></div></div>`;
     document.body.appendChild(modal);
     const cancelHandler = () => { modal.remove(); showToast('Submission cancelled.', 'info'); document.removeEventListener('keydown', escHandler); };
     const confirmHandler = () => { modal.remove(); onConfirm(); document.removeEventListener('keydown', escHandler); };
@@ -84,7 +84,7 @@
     for (let i = 0; i < labels.length; i++) {
       const x = i * (width / labels.length) + startX;
       const barHeight = (values[i] / maxVal) * (height - 60);
-      ctx.fillStyle = '#3b82f6';
+      ctx.fillStyle = '#4f46e5';
       ctx.fillRect(x, height - barHeight - 30, barWidth, barHeight);
       ctx.fillStyle = '#333';
       ctx.font = '12px sans-serif';
@@ -112,13 +112,13 @@
       points.push({ x, y });
     }
     ctx.beginPath();
-    ctx.strokeStyle = '#22c55e';
+    ctx.strokeStyle = '#16a34a';
     ctx.lineWidth = 2;
     ctx.moveTo(points[0].x, points[0].y);
     for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
     ctx.stroke();
     for (let i = 0; i < points.length; i++) {
-      ctx.fillStyle = '#f59e0b';
+      ctx.fillStyle = '#d97706';
       ctx.beginPath();
       ctx.arc(points[i].x, points[i].y, 4, 0, 2 * Math.PI);
       ctx.fill();
@@ -142,157 +142,156 @@
     ctx.clearRect(0, 0, width, height);
     const centerX = width / 2, centerY = height / 2, radius = 100;
     let startAngle = -Math.PI / 2;
-    const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+    const colors = ['#4f46e5', '#16a34a', '#d97706', '#dc2626', '#8b5cf6', '#0284c7'];
     for (let i = 0; i < values.length; i++) {
       const angle = (values[i] / total) * 2 * Math.PI;
       const endAngle = startAngle + angle;
       ctx.beginPath();
-      ctx.fillStyle = colors[i % colors.length];
       ctx.moveTo(centerX, centerY);
       ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+      ctx.closePath();
+      ctx.fillStyle = colors[i % colors.length];
       ctx.fill();
       startAngle = endAngle;
     }
     ctx.fillStyle = '#000';
     ctx.font = 'bold 14px sans-serif';
     ctx.fillText(title, 10, 20);
-    let legendY = 40;
-    for (let i = 0; i < labels.length; i++) {
-      ctx.fillStyle = colors[i % colors.length];
-      ctx.fillRect(width - 120, legendY, 12, 12);
-      ctx.fillStyle = '#000';
-      ctx.font = '10px sans-serif';
-      ctx.fillText(`${labels[i]}: ${values[i]}`, width - 105, legendY + 10);
-      legendY += 18;
-    }
   }
 
-  function renderTable(containerId, title, data) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    let html = `<table class="data-table"><caption style="caption-side:top; margin-bottom:8px; font-weight:bold;">${escapeHtml(title)}</caption><thead><tr><th>Item</th><th>Value</th></tr></thead><tbody>`;
-    for (let [key, val] of Object.entries(data)) {
-      html += `<tr><td>${escapeHtml(key)}</td><td>${escapeHtml(String(val))}</td></tr>`;
+  function renderTable(canvasId, title, rows) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const width = 500, height = 300;
+    const ctx = setCanvasSize(canvas, width, height);
+    ctx.clearRect(0, 0, width, height);
+    ctx.font = '12px sans-serif';
+    const colWidth = width / Math.max(...rows.map(r => r.length));
+    const rowHeight = 25;
+    for (let r = 0; r < rows.length; r++) {
+      for (let c = 0; c < rows[r].length; c++) {
+        const x = c * colWidth + 5;
+        const y = r * rowHeight + 20;
+        ctx.fillStyle = r === 0 ? '#000' : '#333';
+        ctx.fillText(rows[r][c], x, y);
+      }
     }
-    html += `</tbody></table>`;
-    container.innerHTML = html;
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText(title, 10, 20);
   }
 
   function renderParagraphWithVisualizations(paragraphText, uniqueId) {
     if (!paragraphText) return '';
-    const lines = paragraphText.split('\n');
-    if (lines.length === 0) return escapeHtml(paragraphText);
-    const firstLine = lines[0].trim().toUpperCase();
-    const supported = ['[BARGRAPH]', '[LINEGRAPH]', '[PIEGRAPH]', '[TABLE]'];
-    let type = null;
-    for (let t of supported) if (firstLine.startsWith(t)) { type = t; break; }
-    if (!type) return `<div>${escapeHtml(paragraphText)}</div>`;
-
-    const titleLine = lines[1] ? lines[1].trim() : 'Data';
-    const dataLines = lines.slice(2).filter(l => l.includes(':'));
-    const data = {};
-    let hasValidData = false;
-    for (let line of dataLines) {
-      const [key, val] = line.split(':');
-      if (key && val) {
-        let numVal = parseFloat(val.trim());
-        if (isNaN(numVal)) {
-          // Non-numeric value - skip chart rendering, show as text
-          return `<div>${escapeHtml(paragraphText)}</div>`;
+    if (paragraphText.includes('[BARGRAPH]')) {
+      const lines = paragraphText.split('\n');
+      const title = lines[1] || 'Chart';
+      const data = {};
+      for (let i = 2; i < lines.length; i++) {
+        const [key, val] = lines[i].split(':');
+        if (key && val) {
+          let numVal = parseFloat(val.trim());
+          if (isNaN(numVal)) {
+            return `<div>${escapeHtml(paragraphText)}</div>`;
+          }
+          data[key.trim()] = numVal;
         }
-        data[key.trim()] = numVal;
-        hasValidData = true;
       }
+      const canvasId = `barChart_${uniqueId}`;
+      setTimeout(() => renderBarGraph(canvasId, title, data), 0);
+      return `<div class="chart-container"><canvas id="${canvasId}"></canvas></div>`;
     }
-    if (!hasValidData || Object.keys(data).length === 0) return `<div>${escapeHtml(paragraphText)}</div>`;
-
-    const containerId = `viz_${uniqueId}`;
-    let html = `<div class="chart-container" id="${containerId}"></div>`;
-    requestAnimationFrame(() => {
-      const container = document.getElementById(containerId);
-      if (!container) return;
-      if (type === '[BARGRAPH]') {
-        const canvasId = `canvas_${uniqueId}`;
-        container.innerHTML = `<canvas id="${canvasId}" style="width:100%; max-width:500px; height:auto;"></canvas>`;
-        renderBarGraph(canvasId, titleLine, data);
-      } else if (type === '[LINEGRAPH]') {
-        const canvasId = `canvas_${uniqueId}`;
-        container.innerHTML = `<canvas id="${canvasId}" style="width:100%; max-width:500px; height:auto;"></canvas>`;
-        renderLineGraph(canvasId, titleLine, data);
-      } else if (type === '[PIEGRAPH]') {
-        const canvasId = `canvas_${uniqueId}`;
-        container.innerHTML = `<canvas id="${canvasId}" style="width:100%; max-width:500px; height:auto;"></canvas>`;
-        renderPieChart(canvasId, titleLine, data);
-      } else if (type === '[TABLE]') {
-        renderTable(containerId, titleLine, data);
+    if (paragraphText.includes('[LINEGRAPH]')) {
+      const lines = paragraphText.split('\n');
+      const title = lines[1] || 'Chart';
+      const data = {};
+      for (let i = 2; i < lines.length; i++) {
+        const [key, val] = lines[i].split(':');
+        if (key && val) {
+          let numVal = parseFloat(val.trim());
+          if (isNaN(numVal)) {
+            return `<div>${escapeHtml(paragraphText)}</div>`;
+          }
+          data[key.trim()] = numVal;
+        }
       }
-    });
-    return html;
-  }
-
-  let beforeUnloadWarningAdded = false;
-  function enableBeforeUnload(submittedFlagRef) {
-    if (beforeUnloadWarningAdded) return;
-    window.addEventListener('beforeunload', (e) => {
-      if (!submittedFlagRef.submitted) {
-        e.preventDefault();
-        e.returnValue = 'You have not submitted your test. Are you sure you want to leave?';
-        return e.returnValue;
+      const canvasId = `lineChart_${uniqueId}`;
+      setTimeout(() => renderLineGraph(canvasId, title, data), 0);
+      return `<div class="chart-container"><canvas id="${canvasId}"></canvas></div>`;
+    }
+    if (paragraphText.includes('[PIEGRAPH]')) {
+      const lines = paragraphText.split('\n');
+      const title = lines[1] || 'Chart';
+      const data = {};
+      for (let i = 2; i < lines.length; i++) {
+        const [key, val] = lines[i].split(':');
+        if (key && val) {
+          let numVal = parseFloat(val.trim());
+          if (isNaN(numVal)) {
+            return `<div>${escapeHtml(paragraphText)}</div>`;
+          }
+          data[key.trim()] = numVal;
+        }
       }
-    });
-    beforeUnloadWarningAdded = true;
+      const canvasId = `pieChart_${uniqueId}`;
+      setTimeout(() => renderPieChart(canvasId, title, data), 0);
+      return `<div class="chart-container"><canvas id="${canvasId}"></canvas></div>`;
+    }
+    if (paragraphText.includes('[TABLE]')) {
+      const lines = paragraphText.split('\n');
+      const title = lines[1] || 'Table';
+      const rows = [];
+      for (let i = 2; i < lines.length; i++) {
+        const cols = lines[i].split('|').map(c => c.trim());
+        if (cols.length > 1) rows.push(cols);
+      }
+      if (rows.length === 0) return `<div>${escapeHtml(paragraphText)}</div>`;
+      const canvasId = `tableChart_${uniqueId}`;
+      setTimeout(() => renderTable(canvasId, title, rows), 0);
+      return `<div class="chart-container"><canvas id="${canvasId}"></canvas></div>`;
+    }
+    return `<div>${escapeHtml(paragraphText)}</div>`;
   }
 
   // ---------- THEME TOGGLE (for test page) ----------
   function getThemeToggleHTML() {
-    const isDark = document.body.classList.contains('dark');
-    const icon = isDark ? '🌙' : '☀️';
-    return `<button class="theme-toggle-exam" id="themeToggleExam" aria-label="Toggle theme"><span id="themeIconExam">${icon}</span></button>`;
+    // Check localStorage directly since this runs before setupThemeToggle initializes body class
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isLight = savedTheme ? savedTheme === 'light' : !prefersDark;
+    const icon = isLight
+      ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m4.93 19.07 1.41-1.41"/><path d="m17.66 6.34 1.41-1.41"/>'
+      : '<path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.5 6.5 0 0 0 21 12.8Z"/>';
+    return `<button class="theme-toggle-exam" id="themeToggleExam" aria-label="Toggle theme"><svg class="icon" viewBox="0 0 24 24">${icon}</svg></button>`;
   }
 
   function setupThemeToggle() {
     const toggle = document.getElementById('themeToggleExam');
-    const icon = document.getElementById('themeIconExam');
     if (!toggle) return;
+
+    // Initialize theme from localStorage on load (CSS uses .light class for light mode)
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isLight = savedTheme ? savedTheme === 'light' : !prefersDark;
+    document.body.classList.toggle('light', isLight);
+
     const handler = () => {
-      const isDark = !document.body.classList.contains('dark');
-      document.body.classList.toggle('dark', isDark);
-      localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
-      icon.textContent = isDark ? '🌙' : '☀️';
-      showToast(`${isDark ? 'Dark' : 'Light'} mode`, 'info');
+      const isLight = !document.body.classList.contains('light');
+      document.body.classList.toggle('light', isLight);
+      localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark');
+      const icon = toggle.querySelector('svg');
+      if (icon) {
+        icon.innerHTML = isLight
+          ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m4.93 19.07 1.41-1.41"/><path d="m17.66 6.34 1.41-1.41"/>'
+          : '<path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.5 6.5 0 0 0 21 12.8Z"/>';
+      }
+      showToast(`${isLight ? 'Light' : 'Dark'} mode`, 'info');
     };
     toggle.addEventListener('click', handler);
-    // Store cleanup function
     window.__themeToggleCleanup = () => toggle.removeEventListener('click', handler);
   }
 
-  // Apply saved theme
-  if (localStorage.getItem(THEME_KEY) === 'dark') {
-    document.body.classList.add('dark');
-  }
-
-  // Cleanup on page unload
-  window.addEventListener('beforeunload', () => {
-    if (window.__testCleanup) window.__testCleanup();
-  });
-
-  // ----- MAIN -----
-  const params = new URLSearchParams(window.location.search);
-  const testId = params.get('id');
-  if (!testId) {
-    document.body.innerHTML = '<div style="padding:2rem;text-align:center;">❌ No test ID. <a href="index.html">Go Home</a></div>';
-    showToast('No test ID provided.', 'error');
-  } else {
-    const test = getTestById(testId);
-    if (!test) {
-      document.body.innerHTML = '<div style="padding:2rem;text-align:center;">❌ Test not found. <a href="index.html">Return Home</a></div>';
-      showToast('Test not found.', 'error');
-    } else {
-      renderTestInterface(test);
-    }
-  }
-
-  // ---- renderTestInterface (with new UI) ----
+  // ---------- MAIN RENDER ----------
   function renderTestInterface(test) {
     let currentIndex = 0;
     let answers = new Array(test.questions.length).fill(null);
@@ -303,7 +302,6 @@
     const submittedRef = { submitted: false };
     const cleanupFns = [];
     enableBeforeUnload(submittedRef);
-
     function updateTimerDisplay() {
       const mins = Math.floor(timeSeconds / 60);
       const secs = timeSeconds % 60;
@@ -320,7 +318,6 @@
       }, 1000);
     }
     cleanupFns.push(() => { if (timerInterval) clearInterval(timerInterval); });
-
     function renderQuestionNav() {
       const navContainer = document.getElementById('navGrid');
       if (!navContainer) return;
@@ -342,18 +339,16 @@
         navContainer.appendChild(btn);
       }
     }
-
     function renderMainQuestion() {
       const q = test.questions[currentIndex];
       const mainPanel = document.getElementById('mainPanel');
       if (!mainPanel) return;
       const selectedVal = answers[currentIndex];
-      // Use crypto.randomUUID for unique IDs
       const uniqueId = `q${currentIndex}_${crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).substr(2, 8)}`;
       const visualHtml = q.paragraph ? renderParagraphWithVisualizations(q.paragraph, uniqueId) : '';
       mainPanel.innerHTML = `
         <div class="question-card">
-          ${visualHtml ? `<div class="paragraph-box">📖 ${visualHtml}</div>` : ''}
+          ${visualHtml ? `<div class="paragraph-box">${visualHtml}</div>` : ''}
           <div class="question-text">${escapeHtml(q.question)}</div>
           <div class="options-list" id="optionsList">
             ${q.options.map((opt, optIdx) => `
@@ -364,10 +359,10 @@
             `).join('')}
           </div>
           <div class="action-buttons">
-            <button class="action-btn" id="prevBtn">◀ Previous</button>
-            <button class="action-btn" id="nextBtn">Next ▶</button>
-            <button class="action-btn" id="markBtn">${markedForReview[currentIndex] ? '★ Marked' : '☆ Mark for Review'}</button>
-            <button class="action-btn" id="explainBtn">💡 Show Explanation</button>
+            <button class="action-btn" id="prevBtn">Previous</button>
+            <button class="action-btn" id="nextBtn">Next</button>
+            <button class="action-btn" id="markBtn">${markedForReview[currentIndex] ? 'Marked' : 'Mark for review'}</button>
+            <button class="action-btn" id="explainBtn">Show explanation</button>
           </div>
         </div>
       `;
@@ -385,13 +380,11 @@
       };
       document.getElementById('prevBtn')?.addEventListener('click', prevHandler);
       cleanupFns.push(() => document.getElementById('prevBtn')?.removeEventListener('click', prevHandler));
-
       const nextHandler = () => {
         if (currentIndex < test.questions.length - 1) { currentIndex++; renderMainQuestion(); renderQuestionNav(); }
       };
       document.getElementById('nextBtn')?.addEventListener('click', nextHandler);
       cleanupFns.push(() => document.getElementById('nextBtn')?.removeEventListener('click', nextHandler));
-
       const markHandler = () => {
         markedForReview[currentIndex] = !markedForReview[currentIndex];
         renderMainQuestion();
@@ -400,14 +393,12 @@
       };
       document.getElementById('markBtn')?.addEventListener('click', markHandler);
       cleanupFns.push(() => document.getElementById('markBtn')?.removeEventListener('click', markHandler));
-
       const explainHandler = () => {
         showExplanationToast(test.questions[currentIndex].explanation, test.questions[currentIndex].question);
       };
       document.getElementById('explainBtn')?.addEventListener('click', explainHandler);
       cleanupFns.push(() => document.getElementById('explainBtn')?.removeEventListener('click', explainHandler));
     }
-
     function submitAndShowResults() {
       if (submittedRef.submitted) return;
       submittedRef.submitted = true;
@@ -434,34 +425,79 @@
       const score = correctCount;
       const attemptData = { testId: test.id, testName: test.name, score, total, percentage, date: new Date().toISOString(), answers };
       saveAttempt(attemptData);
-      showToast(`Test submitted! Score: ${score}/${total} (${percentage}%)`, 'success', 'Test Completed!');
-
-      // Generate CSV content
+      showToast(`Test submitted! Score: ${score}/${total} (${percentage}%)`, 'success', 'Test completed');
       const csvContent = generateCSV(test, resultsDetail, { score, total, percentage, date: attemptData.date, timeSeconds });
-
       const modalDiv = document.createElement('div');
       modalDiv.className = 'results-modal';
       modalDiv.innerHTML = `
         <div class="results-card">
-          <div class="results-header"><h2>📊 Test Results</h2><p>${escapeHtml(test.name)} • ${new Date().toLocaleDateString()}</p></div>
+          <div class="results-header"><h2><svg width="25px" height="25px" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M9 5a1 1 0 100 2h2.586l-3.293 3.293a1 1 0 101.414 1.414L13 8.414V11a1 1 0 102 0V6c0-.025 0-.05-.003-.075A1 1 0 0014 5H9zM1 14.5A1.5 1.5 0 012.5 13h3A1.5 1.5 0 017 14.5v3A1.5 1.5 0 015.5 19h-3A1.5 1.5 0 011 17.5v-3z" fill="#5C5F62"/><path d="M2.5 1A1.5 1.5 0 001 2.5V11h2V3h14v14H9v2h8.5a1.5 1.5 0 001.5-1.5v-15A1.5 1.5 0 0017.5 1h-15z" fill="#5C5F62"/></svg>       Test results</h2><p>${escapeHtml(test.name)} &bull; ${new Date().toLocaleDateString()}</p></div>
           <div class="score-summary">
-            <div class="score-card correct"><div class="score-value">${correctCount}/${total}</div><div class="score-label">✅ Correct</div></div>
-            <div class="score-card incorrect"><div class="score-value">${total - correctCount}/${total}</div><div class="score-label">❌ Incorrect</div></div>
-            <div class="score-card percentage"><div class="score-value">${percentage}%</div><div class="score-label">📈 Score</div></div>
+            <div class="score-card correct"><div class="score-value">${correctCount}/${total}</div><div class="score-label">Correct</div></div>
+            <div class="score-card incorrect"><div class="score-value">${total - correctCount}/${total}</div><div class="score-label">Incorrect</div></div>
+            <div class="score-card percentage"><div class="score-value">${percentage}%</div><div class="score-label">Score</div></div>
           </div>
           <div class="results-content">
             ${resultsDetail.map((d, i) => `
               <div class="question-review-item ${d.isCorrect ? 'correct' : 'incorrect'}">
                 <div class="q-text">Q${i+1}: ${escapeHtml(d.question)}</div>
-                <div class="answer-detail">📌 Your answer: ${escapeHtml(d.userAnswer)}</div>
-                ${!d.isCorrect ? `<div class="answer-detail">✓ Correct: ${escapeHtml(d.correctAnswer)}</div>` : ''}
-                <div class="explanation-box"><strong>💡 Explanation:</strong> ${escapeHtml(d.explanation)}</div>
+                <div class="answer-detail">Your answer: ${escapeHtml(d.userAnswer)}</div>
+                ${!d.isCorrect ? `<div class="answer-detail">Correct: ${escapeHtml(d.correctAnswer)}</div>` : ''}
+                <div class="explanation-box"><strong>Explanation:</strong> ${escapeHtml(d.explanation)}</div>
               </div>
             `).join('')}
           </div>
           <div class="results-footer">
-            <button class="btn btn-secondary" id="exportCsvBtn">📥 Export CSV</button>
-            <button class="btn btn-primary" id="homeBtn">🏠 Go Home</button>
+            <button class="btn btn-secondary" id="exportCsvBtn">
+              <svg width="20px" height="20px" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+
+<defs>
+
+<style>.cls-1{fill:#101010;}</style>
+
+</defs>
+
+<title/>
+
+<g id="xxx-word">
+
+<path class="cls-1" d="M325,105H250a5,5,0,0,1-5-5V25a5,5,0,1,1,10,0V95h70a5,5,0,0,1,0,10Z"/>
+
+<path class="cls-1" d="M325,154.83a5,5,0,0,1-5-5V102.07L247.93,30H100A20,20,0,0,0,80,50v98.17a5,5,0,0,1-10,0V50a30,30,0,0,1,30-30H250a5,5,0,0,1,3.54,1.46l75,75A5,5,0,0,1,330,100v49.83A5,5,0,0,1,325,154.83Z"/>
+
+<path class="cls-1" d="M300,380H100a30,30,0,0,1-30-30V275a5,5,0,0,1,10,0v75a20,20,0,0,0,20,20H300a20,20,0,0,0,20-20V275a5,5,0,0,1,10,0v75A30,30,0,0,1,300,380Z"/>
+
+<path class="cls-1" d="M275,280H125a5,5,0,1,1,0-10H275a5,5,0,0,1,0,10Z"/>
+
+<path class="cls-1" d="M200,330H125a5,5,0,1,1,0-10h75a5,5,0,0,1,0,10Z"/>
+
+<path class="cls-1" d="M325,280H75a30,30,0,0,1-30-30V173.17a30,30,0,0,1,30-30h.2l250,1.66a30.09,30.09,0,0,1,29.81,30V250A30,30,0,0,1,325,280ZM75,153.17a20,20,0,0,0-20,20V250a20,20,0,0,0,20,20H325a20,20,0,0,0,20-20V174.83a20.06,20.06,0,0,0-19.88-20l-250-1.66Z"/>
+
+<path class="cls-1" d="M168.48,217.48l8.91,1a20.84,20.84,0,0,1-6.19,13.18q-5.33,5.18-14,5.18-7.31,0-11.86-3.67a23.43,23.43,0,0,1-7-10,37.74,37.74,0,0,1-2.46-13.87q0-12.19,5.78-19.82t15.9-7.64a18.69,18.69,0,0,1,13.2,4.88q5.27,4.88,6.64,14l-8.91.94q-2.46-12.07-10.86-12.07-5.39,0-8.38,5t-3,14.55q0,9.69,3.2,14.63t8.48,4.94a9.3,9.3,0,0,0,7.19-3.32A13.25,13.25,0,0,0,168.48,217.48Z"/>
+
+<path class="cls-1" d="M179.41,223.15l9.34-2q1.68,7.93,12.89,7.93,5.12,0,7.87-2a6.07,6.07,0,0,0,2.75-5,7.09,7.09,0,0,0-1.25-4q-1.25-1.85-5.35-2.91l-10.2-2.66a25.1,25.1,0,0,1-7.73-3.11,12.15,12.15,0,0,1-4-4.9,15.54,15.54,0,0,1-1.5-6.76,14,14,0,0,1,5.31-11.46q5.31-4.32,13.59-4.32a24.86,24.86,0,0,1,12.29,3,13.56,13.56,0,0,1,6.89,8.52l-9.14,2.27q-2.11-6.05-9.84-6.05-4.49,0-6.86,1.88a5.83,5.83,0,0,0-2.36,4.77q0,4.57,7.42,6.41l9.06,2.27q8.24,2.07,11.05,6.11a15.29,15.29,0,0,1,2.81,8.93,14.7,14.7,0,0,1-5.92,12.36q-5.92,4.51-15.33,4.51a28,28,0,0,1-13.89-3.32A16.29,16.29,0,0,1,179.41,223.15Z"/>
+
+<path class="cls-1" d="M250.31,236h-9.77L224.1,182.68h10.16l12.23,40.86L259,182.68h8Z"/>
+
+</g>
+
+</svg>
+              Export CSV
+            </button>
+            <button class="btn btn-primary" id="homeBtn">
+              <svg fill="#000000" width="20px" height="20px" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M15.5 14.69h-1.25V7.78a.62.62 0 0 0-.25-.47L8.4 2.7a.65.65 0 0 0-.81 0L2 7.31a.62.62 0 0 0-.22.47v6.91H.5V7.78a1.87 1.87 0 0 1 .68-1.44l5.62-4.6a1.88 1.88 0 0 1 2.39 0l5.63 4.6a1.87 1.87 0 0 1 .68 1.44z"/><path d="M11.05 12.11H9.8A1.72 1.72 0 0 0 8 10.49a1.72 1.72 0 0 0-1.8 1.62H5a3 3 0 0 1 
+3-2.87 
+3 
+3 
+0 
+0 
+1 
+3.05 
+2.87zm-6.1 
+0H6.2v2.58H4.95zm4.85 
+0h1.25v2.58H9.8z"/></svg>
+              Go home
+            </button>
           </div>
         </div>
       `;
@@ -475,39 +511,17 @@
         document.getElementById('homeBtn')?.removeEventListener('click', homeHandler);
       });
     }
-
     function generateCSV(test, resultsDetail, summary) {
       const rows = [];
-      // Header
-      rows.push([
-        'Test Name', 'Category', 'Date', 'Time Taken (seconds)', 'Score', 'Total', 'Percentage'
-      ]);
-      rows.push([
-        test.name, test.category || 'Misc', summary.date, summary.timeSeconds, summary.score, summary.total, summary.percentage + '%'
-      ]);
-      rows.push([]); // blank row
-
-      // Question details header
-      rows.push([
-        'Question #', 'Question', 'Your Answer', 'Correct Answer', 'Result', 'Options', 'Explanation', 'Paragraph/Data'
-      ]);
-
+      rows.push(['Test Name', 'Category', 'Date', 'Time Taken (seconds)', 'Score', 'Total', 'Percentage']);
+      rows.push([test.name, test.category || 'Misc', summary.date, summary.timeSeconds, summary.score, summary.total, summary.percentage + '%']);
+      rows.push([]);
+      rows.push(['Question #', 'Question', 'Your Answer', 'Correct Answer', 'Result', 'Options', 'Explanation', 'Paragraph/Data']);
       resultsDetail.forEach((d, i) => {
         const optionsStr = d.options.join(' | ');
         const paragraphStr = d.paragraph ? d.paragraph.replace(/\n/g, ' ') : '';
-        rows.push([
-          i + 1,
-          d.question,
-          d.userAnswer,
-          d.correctAnswer,
-          d.isCorrect ? 'Correct' : 'Incorrect',
-          optionsStr,
-          d.explanation,
-          paragraphStr
-        ]);
+        rows.push([i + 1, d.question, d.userAnswer, d.correctAnswer, d.isCorrect ? 'Correct' : 'Incorrect', optionsStr, d.explanation, paragraphStr]);
       });
-
-      // Escape CSV values
       return rows.map(row =>
         row.map(cell => {
           const str = String(cell || '');
@@ -518,7 +532,6 @@
         }).join(',')
       ).join('\n');
     }
-
     function downloadCSV(content, filename) {
       const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
@@ -531,21 +544,20 @@
       setTimeout(() => URL.revokeObjectURL(link.href), 100);
       showToast('CSV exported successfully!', 'success');
     }
-
     // Build UI
     const toggleHTML = getThemeToggleHTML();
     app.innerHTML = `
       <div class="test-header">
-        <div class="test-title">📌 ${escapeHtml(test.name)} <span class="test-id">ID: ${test.id.slice(-8)}</span></div>
+        <div class="test-title">${escapeHtml(test.name)} <span class="test-id">ID: ${test.id.slice(-8)}</span></div>
         <div class="header-controls">
-          <div class="timer">⏱️ <span id="timerDisplay">00:00</span></div>
+          <div class="timer"><span id="timerDisplay">00:00</span></div>
           ${toggleHTML}
-          <button class="submit-btn" id="finalSubmitBtn">✅ Submit Test</button>
+          <button class="submit-btn" id="finalSubmitBtn">Submit test</button>
         </div>
       </div>
       <div class="test-container">
         <div class="question-nav">
-          <h4>📋 Navigator</h4>
+          <h4>Navigator</h4>
           <div class="nav-grid" id="navGrid"></div>
           <div class="nav-legend">
             <span class="nav-legend-item"><span class="dot answered"></span> Answered</span>
@@ -556,29 +568,48 @@
         <div class="question-panel" id="mainPanel"></div>
       </div>
     `;
-
     startTimer();
     renderQuestionNav();
     renderMainQuestion();
-
     const submitHandler = () => {
       const unansweredCount = answers.filter(a => a === null).length;
       showConfirmationModal(() => submitAndShowResults(), unansweredCount);
     };
     document.getElementById('finalSubmitBtn')?.addEventListener('click', submitHandler);
     cleanupFns.push(() => document.getElementById('finalSubmitBtn')?.removeEventListener('click', submitHandler));
-
     setupThemeToggle();
-    // Add theme toggle cleanup
     cleanupFns.push(() => { if (window.__themeToggleCleanup) window.__themeToggleCleanup(); });
-
-    // Expose cleanup for page unload
     window.__testCleanup = () => cleanupFns.forEach(fn => fn());
+  }
+
+  function enableBeforeUnload(submittedRef) {
+    window.addEventListener('beforeunload', (e) => {
+      if (!submittedRef.submitted) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+  }
+
+  // ---------- ENTRY ----------
+  const params = new URLSearchParams(window.location.search);
+  const testId = params.get('id');
+  if (!testId) {
+    document.body.innerHTML = '<div style="padding:2rem;text-align:center;">No test ID. <a href="index.html">Go Home</a></div>';
+    showToast('No test ID provided.', 'error');
+  } else {
+    const test = getTestById(testId);
+    if (!test) {
+      document.body.innerHTML = '<div style="padding:2rem;text-align:center;">Test not found. <a href="index.html">Return Home</a></div>';
+      showToast('Test not found.', 'error');
+    } else {
+      renderTestInterface(test);
+    }
   }
 
   function escapeHtml(str) {
     if (!str) return '';
-    return String(str).replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
+    return String(str).replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
   }
 </script>
 </body>
